@@ -10,15 +10,15 @@ from bidict import bidict
 
 from hummingbot.client.config.client_config_map import ClientConfigMap
 from hummingbot.client.config.config_helpers import ClientConfigAdapter
-from hummingbot.connector.exchange.binance import binance_constants as CONSTANTS, binance_web_utils as web_utils
-from hummingbot.connector.exchange.binance.binance_api_order_book_data_source import BinanceAPIOrderBookDataSource
-from hummingbot.connector.exchange.binance.binance_exchange import BinanceExchange
+from hummingbot.connector.exchange.woo_x import woo_x_constants as CONSTANTS, woo_x_web_utils as web_utils
+from hummingbot.connector.exchange.woo_x.woo_x_api_order_book_data_source import WooXAPIOrderBookDataSource
+from hummingbot.connector.exchange.woo_x.woo_x_exchange import WooXExchange
 from hummingbot.connector.test_support.network_mocking_assistant import NetworkMockingAssistant
 from hummingbot.core.data_type.order_book import OrderBook
 from hummingbot.core.data_type.order_book_message import OrderBookMessage
 
 
-class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
+class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
     # logging.Level required to receive logs from the data source logger
     level = 0
 
@@ -30,30 +30,41 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
         cls.quote_asset = "HBOT"
         cls.trading_pair = f"{cls.base_asset}-{cls.quote_asset}"
         cls.ex_trading_pair = cls.base_asset + cls.quote_asset
-        cls.domain = "com"
+        cls.domain = "woo_x_main"
 
     def setUp(self) -> None:
         super().setUp()
+
         self.log_records = []
+
         self.listening_task = None
+
         self.mocking_assistant = NetworkMockingAssistant()
 
         client_config_map = ClientConfigAdapter(ClientConfigMap())
-        self.connector = BinanceExchange(
+
+        self.connector = WooXExchange(
             client_config_map=client_config_map,
-            binance_api_key="",
-            binance_api_secret="",
+            woo_x_api_key="",
+            woo_x_api_secret="",
             trading_pairs=[],
             trading_required=False,
-            domain=self.domain)
-        self.data_source = BinanceAPIOrderBookDataSource(trading_pairs=[self.trading_pair],
-                                                         connector=self.connector,
-                                                         api_factory=self.connector._web_assistants_factory,
-                                                         domain=self.domain)
+            domain=self.domain
+        )
+
+        self.data_source = WooXAPIOrderBookDataSource(
+            trading_pairs=[self.trading_pair],
+            connector=self.connector,
+            api_factory=self.connector._web_assistants_factory,
+            domain=self.domain
+        )
+
         self.data_source.logger().setLevel(1)
+
         self.data_source.logger().addHandler(self)
 
         self._original_full_order_book_reset_time = self.data_source.FULL_ORDER_BOOK_RESET_DELTA_SECONDS
+
         self.data_source.FULL_ORDER_BOOK_RESET_DELTA_SECONDS = -1
 
         self.resume_test_event = asyncio.Event()
@@ -62,7 +73,9 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.listening_task and self.listening_task.cancel()
+
         self.data_source.FULL_ORDER_BOOK_RESET_DELTA_SECONDS = self._original_full_order_book_reset_time
+
         super().tearDown()
 
     def handle(self, record):
@@ -116,26 +129,42 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
         return resp
 
     def _snapshot_response(self):
-        resp = {
-            "lastUpdateId": 1027024,
-            "bids": [
-                [
-                    "4.00000000",
-                    "431.00000000"
-                ]
-            ],
+        return {
+            "success": True,
             "asks": [
-                [
-                    "4.00000200",
-                    "12.00000000"
-                ]
-            ]
+                {
+                    "price": 10669.4,
+                    "quantity": 1.56263218
+                },
+                {
+                    "price": 10670.3,
+                    "quantity": 0.36466977
+                },
+                {
+                    "price": 10670.4,
+                    "quantity": 0.06738009
+                }
+            ],
+            "bids": [
+                {
+                    "price": 10669.3,
+                    "quantity": 0.88159988
+                },
+                {
+                    "price": 10669.2,
+                    "quantity": 0.5
+                },
+                {
+                    "price": 10668.9,
+                    "quantity": 0.00488286
+                }
+            ],
+            "timestamp": 1564710591905
         }
-        return resp
 
     @aioresponses()
     def test_get_new_order_book_successful(self, mock_api):
-        url = web_utils.public_rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         resp = self._snapshot_response()
@@ -148,7 +177,7 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
         print(resp, order_book.snapshot_uid)
 
-        expected_update_id = resp["lastUpdateId"]
+        expected_update_id = resp["timestamp"]
 
         self.assertEqual(expected_update_id, order_book.snapshot_uid)
         bids = list(order_book.bid_entries())
@@ -164,7 +193,8 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
     @aioresponses()
     def test_get_new_order_book_raises_exception(self, mock_api):
-        url = web_utils.public_rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         mock_api.get(regex_url, status=400)
@@ -366,7 +396,8 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
     @aioresponses()
     def test_listen_for_order_book_snapshots_cancelled_when_fetching_snapshot(self, mock_api):
-        url = web_utils.public_rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         mock_api.get(regex_url, exception=asyncio.CancelledError, repeat=True)
@@ -377,13 +408,13 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
             )
 
     @aioresponses()
-    @patch("hummingbot.connector.exchange.binance.binance_api_order_book_data_source"
-           ".BinanceAPIOrderBookDataSource._sleep")
+    @patch("hummingbot.connector.exchange.woo_x.woo_x_api_order_book_data_source"
+           ".WooXAPIOrderBookDataSource._sleep")
     def test_listen_for_order_book_snapshots_log_exception(self, mock_api, sleep_mock):
         msg_queue: asyncio.Queue = asyncio.Queue()
         sleep_mock.side_effect = lambda _: self._create_exception_and_unlock_test_with_event(asyncio.CancelledError())
 
-        url = web_utils.public_rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         mock_api.get(regex_url, exception=Exception, repeat=True)
@@ -399,7 +430,7 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
     @aioresponses()
     def test_listen_for_order_book_snapshots_successful(self, mock_api, ):
         msg_queue: asyncio.Queue = asyncio.Queue()
-        url = web_utils.public_rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         mock_api.get(regex_url, body=json.dumps(self._snapshot_response()))
