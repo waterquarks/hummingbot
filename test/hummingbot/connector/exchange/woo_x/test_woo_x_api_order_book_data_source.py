@@ -131,35 +131,19 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
     def _snapshot_response(self):
         return {
             "success": True,
-            "asks": [
-                {
-                    "price": 10669.4,
-                    "quantity": 1.56263218
-                },
-                {
-                    "price": 10670.3,
-                    "quantity": 0.36466977
-                },
-                {
-                    "price": 10670.4,
-                    "quantity": 0.06738009
-                }
-            ],
             "bids": [
                 {
-                    "price": 10669.3,
-                    "quantity": 0.88159988
-                },
-                {
-                    "price": 10669.2,
-                    "quantity": 0.5
-                },
-                {
-                    "price": 10668.9,
-                    "quantity": 0.00488286
+                    "price": 4,
+                    "quantity": 431
                 }
             ],
-            "timestamp": 1564710591905
+            "asks": [
+                {
+                    "price": 4.000002,
+                    "quantity": 12
+                }
+            ],
+            "timestamp": 1686211049066
         }
 
     @aioresponses()
@@ -174,8 +158,6 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
         order_book: OrderBook = self.async_run_with_timeout(
             self.data_source.get_new_order_book(self.trading_pair)
         )
-
-        print(resp, order_book.snapshot_uid)
 
         expected_update_id = resp["timestamp"]
 
@@ -198,6 +180,7 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         mock_api.get(regex_url, status=400)
+
         with self.assertRaises(IOError):
             self.async_run_with_timeout(
                 self.data_source.get_new_order_book(self.trading_pair)
