@@ -146,8 +146,6 @@ class BinanceAPIOrderBookDataSourceUnitTests(unittest.TestCase):
             self.data_source.get_new_order_book(self.trading_pair)
         )
 
-        print(resp, order_book.snapshot_uid)
-
         expected_update_id = resp["lastUpdateId"]
 
         self.assertEqual(expected_update_id, order_book.snapshot_uid)

@@ -110,7 +110,6 @@ class BinanceAPIOrderBookDataSource(OrderBookTrackerDataSource):
 
     async def _order_book_snapshot(self, trading_pair: str) -> OrderBookMessage:
         snapshot: Dict[str, Any] = await self._request_order_book_snapshot(trading_pair)
-        print('snapshot', snapshot)
         snapshot_timestamp: float = time.time()
         snapshot_msg: OrderBookMessage = BinanceOrderBook.snapshot_message_from_exchange(
             snapshot,
