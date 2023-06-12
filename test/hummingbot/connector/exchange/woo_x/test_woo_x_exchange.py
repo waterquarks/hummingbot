@@ -24,32 +24,32 @@ from hummingbot.core.event.events import MarketOrderFailureEvent, OrderFilledEve
 class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     @property
     def all_symbols_url(self):
-        return web_utils.public_rest_url(path_url=CONSTANTS.EXCHANGE_INFO_PATH_URL, domain=self.exchange._domain)
+        return web_utils.rest_url(path_url=CONSTANTS.EXCHANGE_INFO_PATH_URL, domain=self.exchange._domain)
 
     @property
     def latest_prices_url(self):
-        url = web_utils.public_rest_url(path_url=CONSTANTS.TICKER_PRICE_CHANGE_PATH_URL, domain=self.exchange._domain)
+        url = web_utils.rest_url(path_url=CONSTANTS.TICKER_PRICE_CHANGE_PATH_URL, domain=self.exchange._domain)
         url = f"{url}?symbol={self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset)}"
         return url
 
     @property
     def network_status_url(self):
-        url = web_utils.private_rest_url(CONSTANTS.PING_PATH_URL, domain=self.exchange._domain)
+        url = web_utils.rest_url(CONSTANTS.PING_PATH_URL, domain=self.exchange._domain)
         return url
 
     @property
     def trading_rules_url(self):
-        url = web_utils.private_rest_url(CONSTANTS.EXCHANGE_INFO_PATH_URL, domain=self.exchange._domain)
+        url = web_utils.rest_url(CONSTANTS.EXCHANGE_INFO_PATH_URL, domain=self.exchange._domain)
         return url
 
     @property
     def order_creation_url(self):
-        url = web_utils.private_rest_url(CONSTANTS.ORDER_PATH_URL, domain=self.exchange._domain)
+        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL, domain=self.exchange._domain)
         return url
 
     @property
     def balance_url(self):
-        url = web_utils.private_rest_url(CONSTANTS.ACCOUNTS_PATH_URL, domain=self.exchange._domain)
+        url = web_utils.rest_url(CONSTANTS.ACCOUNTS_PATH_URL, domain=self.exchange._domain)
         return url
 
     @property
@@ -405,7 +405,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def configure_order_not_found_error_cancelation_response(
             self, order: InFlightOrder, mock_api: aioresponses, callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.private_rest_url(CONSTANTS.ORDER_PATH_URL)
+        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
         response = {"code": -2011, "msg": "Unknown order sent."}
         mock_api.delete(regex_url, status=400, body=json.dumps(response), callback=callback)
@@ -500,10 +500,11 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         return url
 
     def configure_partially_filled_order_status_response(
-            self,
-            order: InFlightOrder,
-            mock_api: aioresponses,
-            callback: Optional[Callable] = lambda *args, **kwargs: None) -> str:
+        self,
+        order: InFlightOrder,
+        mock_api: aioresponses,
+        callback: Optional[Callable] = lambda *args, **kwargs: None
+    ) -> str:
         url = web_utils.rest_url(f"{CONSTANTS.ORDER_PATH_URL}/{order.exchange_order_id}")
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
@@ -517,193 +518,134 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def configure_order_not_found_error_order_status_response(
             self, order: InFlightOrder, mock_api: aioresponses, callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> List[str]:
-        url = web_utils.private_rest_url(CONSTANTS.ORDER_PATH_URL)
+        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
         response = {"code": -2013, "msg": "Order does not exist."}
         mock_api.get(regex_url, body=json.dumps(response), status=400, callback=callback)
         return [url]
 
     def configure_partial_fill_trade_response(
-            self,
-            order: InFlightOrder,
-            mock_api: aioresponses,
-            callback: Optional[Callable] = lambda *args, **kwargs: None) -> str:
-        url = web_utils.private_rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
+        self,
+        order: InFlightOrder,
+        mock_api: aioresponses,
+        callback: Optional[Callable] = lambda *args, **kwargs: None
+    ) -> str:
+        url = web_utils.rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
+
         regex_url = re.compile(url + r"\?.*")
+
         response = self._order_fills_request_partial_fill_mock_response(order=order)
+
         mock_api.get(regex_url, body=json.dumps(response), callback=callback)
+
         return url
 
     def configure_full_fill_trade_response(
-            self,
-            order: InFlightOrder,
-            mock_api: aioresponses,
-            callback: Optional[Callable] = lambda *args, **kwargs: None) -> str:
-        url = web_utils.private_rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
+        self,
+        order: InFlightOrder,
+        mock_api: aioresponses,
+        callback: Optional[Callable] = lambda *args, **kwargs: None
+    ) -> str:
+        url = web_utils.rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
+
         regex_url = re.compile(url + r"\?.*")
+
         response = self._order_fills_request_full_fill_mock_response(order=order)
+
         mock_api.get(regex_url, body=json.dumps(response), callback=callback)
+
         return url
 
     def order_event_for_new_order_websocket_update(self, order: InFlightOrder):
         return {
-            "e": "executionReport",
-            "E": 1499405658658,
-            "s": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "c": order.client_order_id,
-            "S": order.trade_type.name.upper(),
-            "o": order.order_type.name.upper(),
-            "f": "GTC",
-            "q": str(order.amount),
-            "p": str(order.price),
-            "P": "0.00000000",
-            "F": "0.00000000",
-            "g": -1,
-            "C": "",
-            "x": "NEW",
-            "X": "NEW",
-            "r": "NONE",
-            "i": order.exchange_order_id,
-            "l": "0.00000000",
-            "z": "0.00000000",
-            "L": "0.00000000",
-            "n": "0",
-            "N": None,
-            "T": 1499405658657,
-            "t": -1,
-            "I": 8641984,
-            "w": True,
-            "m": False,
-            "M": False,
-            "O": 1499405658657,
-            "Z": "0.00000000",
-            "Y": "0.00000000",
-            "Q": "0.00000000"
+            "topic": "executionreport",
+            "ts": 1686588154387,
+            "data": {
+                "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
+                "clientOrderId": order.client_order_id,
+                "orderId": order.exchange_order_id,
+                "type": order.order_type.name.upper(),
+                "side": order.trade_type.name.upper(),
+                "quantity": order.amount,
+                "price": order.price,
+                "tradeId": 0,
+                "executedPrice": 0.0,
+                "executedQuantity": 0.0,
+                "fee": 0.0,
+                "feeAsset": "BTC",
+                "totalExecutedQuantity": 0.0,
+                "status": "NEW",
+                "reason": "",
+                "orderTag": "default",
+                "totalFee": 0.0,
+                "visible": 0.001,
+                "timestamp": 1686588154387,
+                "reduceOnly": False,
+                "maker": False
+            }
         }
 
     def order_event_for_canceled_order_websocket_update(self, order: InFlightOrder):
         return {
-            "e": "executionReport",
-            "E": 1499405658658,
-            "s": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "c": "dummyText",
-            "S": order.trade_type.name.upper(),
-            "o": order.order_type.name.upper(),
-            "f": "GTC",
-            "q": str(order.amount),
-            "p": str(order.price),
-            "P": "0.00000000",
-            "F": "0.00000000",
-            "g": -1,
-            "C": order.client_order_id,
-            "x": "CANCELED",
-            "X": "CANCELED",
-            "r": "NONE",
-            "i": order.exchange_order_id,
-            "l": "0.00000000",
-            "z": "0.00000000",
-            "L": "0.00000000",
-            "n": "0",
-            "N": None,
-            "T": 1499405658657,
-            "t": -1,
-            "I": 8641984,
-            "w": True,
-            "m": False,
-            "M": False,
-            "O": 1499405658657,
-            "Z": "0.00000000",
-            "Y": "0.00000000",
-            "Q": "0.00000000"
+            "topic": "executionreport",
+            "ts": 1686588270140,
+            "data": {
+                "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
+                "clientOrderId": order.client_order_id,
+                "orderId": order.exchange_order_id,
+                "type": order.order_type.name.upper(),
+                "side": order.trade_type.name.upper(),
+                "quantity": order.amount,
+                "price": order.price,
+                "tradeId": 0,
+                "executedPrice": 0.0,
+                "executedQuantity": 0.0,
+                "fee": 0.0,
+                "feeAsset": "BTC",
+                "totalExecutedQuantity": 0.0,
+                "status": "CANCELLED",
+                "reason": "",
+                "orderTag": "default",
+                "totalFee": 0.0,
+                "visible": 0.001,
+                "timestamp": 1686588270140,
+                "reduceOnly": False,
+                "maker": False
+            }
         }
 
     def order_event_for_full_fill_websocket_update(self, order: InFlightOrder):
         return {
-            "e": "executionReport",
-            "E": 1499405658658,
-            "s": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "c": order.client_order_id,
-            "S": order.trade_type.name.upper(),
-            "o": order.order_type.name.upper(),
-            "f": "GTC",
-            "q": str(order.amount),
-            "p": str(order.price),
-            "P": "0.00000000",
-            "F": "0.00000000",
-            "g": -1,
-            "C": "",
-            "x": "TRADE",
-            "X": "FILLED",
-            "r": "NONE",
-            "i": order.exchange_order_id,
-            "l": str(order.amount),
-            "z": str(order.amount),
-            "L": str(order.price),
-            "n": str(self.expected_fill_fee.flat_fees[0].amount),
-            "N": self.expected_fill_fee.flat_fees[0].token,
-            "T": 1499405658657,
-            "t": 1,
-            "I": 8641984,
-            "w": True,
-            "m": False,
-            "M": False,
-            "O": 1499405658657,
-            "Z": "10050.00000000",
-            "Y": "10050.00000000",
-            "Q": "10000.00000000"
+            "topic": "executionreport",
+            "ts": 1686588450683,
+            "data": {
+                "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
+                "clientOrderId": order.client_order_id,
+                "orderId": 199270655,
+                "type": order.order_type.name.upper(),
+                "side": order.trade_type.name.upper(),
+                "quantity": order.amount,
+                "price": order.price,
+                "tradeId": 250106703,
+                "executedPrice": order.price,
+                "executedQuantity": order.amount,
+                "fee": self.expected_fill_fee.flat_fees[0].amount,
+                "feeAsset": self.expected_fill_fee.flat_fees[0].token,
+                "totalExecutedQuantity": order.amount,
+                "avgPrice": order.price,
+                "status": "FILLED",
+                "reason": "",
+                "orderTag": "default",
+                "totalFee": 0.00000030,
+                "visible": 0.001,
+                "timestamp": 1686588450683,
+                "reduceOnly": False,
+                "maker": True
+            }
         }
 
     def trade_event_for_full_fill_websocket_update(self, order: InFlightOrder):
         return None
-
-    @aioresponses()
-    @patch("hummingbot.connector.time_synchronizer.TimeSynchronizer._current_seconds_counter")
-    def test_update_time_synchronizer_successfully(self, mock_api, seconds_counter_mock):
-        request_sent_event = asyncio.Event()
-        seconds_counter_mock.side_effect = [0, 0, 0]
-
-        self.exchange._time_synchronizer.clear_time_offset_ms_samples()
-        url = web_utils.private_rest_url(CONSTANTS.SERVER_TIME_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-
-        response = {"serverTime": 1640000003000}
-
-        mock_api.get(regex_url,
-                     body=json.dumps(response),
-                     callback=lambda *args, **kwargs: request_sent_event.set())
-
-        self.async_run_with_timeout(self.exchange._update_time_synchronizer())
-
-        self.assertEqual(response["serverTime"] * 1e-3, self.exchange._time_synchronizer.time())
-
-    @aioresponses()
-    def test_update_time_synchronizer_failure_is_logged(self, mock_api):
-        request_sent_event = asyncio.Event()
-
-        url = web_utils.private_rest_url(CONSTANTS.SERVER_TIME_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-
-        response = {"code": -1121, "msg": "Dummy error"}
-
-        mock_api.get(regex_url,
-                     body=json.dumps(response),
-                     callback=lambda *args, **kwargs: request_sent_event.set())
-
-        self.async_run_with_timeout(self.exchange._update_time_synchronizer())
-
-        self.assertTrue(self.is_logged("NETWORK", "Error getting server time."))
-
-    @aioresponses()
-    def test_update_time_synchronizer_raises_cancelled_error(self, mock_api):
-        url = web_utils.private_rest_url(CONSTANTS.SERVER_TIME_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-
-        mock_api.get(regex_url,
-                     exception=asyncio.CancelledError)
-
-        self.assertRaises(
-            asyncio.CancelledError,
-            self.async_run_with_timeout, self.exchange._update_time_synchronizer())
 
     @aioresponses()
     def test_update_order_fills_from_trades_triggers_filled_event(self, mock_api):
@@ -722,7 +664,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         )
         order = self.exchange.in_flight_orders["OID1"]
 
-        url = web_utils.private_rest_url(CONSTANTS.MY_TRADES_PATH_URL)
+        url = web_utils.rest_url(CONSTANTS.MY_TRADES_PATH_URL)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         trade_fill = {
@@ -1054,25 +996,6 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
 
         self.assertEqual(result, expected_client_order_id)
 
-    def test_time_synchronizer_related_request_error_detection(self):
-        exception = IOError("Error executing request POST https://api.woo_x.com/api/v3/order. HTTP status is 400. "
-                            "Error: {'code':-1021,'msg':'Timestamp for this request is outside of the recvWindow.'}")
-        self.assertTrue(self.exchange._is_request_exception_related_to_time_synchronizer(exception))
-
-        exception = IOError("Error executing request POST https://api.woo_x.com/api/v3/order. HTTP status is 400. "
-                            "Error: {'code':-1021,'msg':'Timestamp for this request was 1000ms ahead of the server's "
-                            "time.'}")
-        self.assertTrue(self.exchange._is_request_exception_related_to_time_synchronizer(exception))
-
-        exception = IOError("Error executing request POST https://api.woo_x.com/api/v3/order. HTTP status is 400. "
-                            "Error: {'code':-1022,'msg':'Timestamp for this request was 1000ms ahead of the server's "
-                            "time.'}")
-        self.assertFalse(self.exchange._is_request_exception_related_to_time_synchronizer(exception))
-
-        exception = IOError("Error executing request POST https://api.woo_x.com/api/v3/order. HTTP status is 400. "
-                            "Error: {'code':-1021,'msg':'Other error.'}")
-        self.assertFalse(self.exchange._is_request_exception_related_to_time_synchronizer(exception))
-
     @aioresponses()
     def test_place_order_manage_server_overloaded_error_unkown_order(self, mock_api):
         self.exchange._set_current_timestamp(1640780000)
@@ -1304,60 +1227,90 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
 
     def _order_status_request_partially_filled_mock_response(self, order: InFlightOrder) -> Any:
         return {
+            "success": True,
             "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "orderId": order.exchange_order_id,
-            "orderListId": -1,
-            "clientOrderId": order.client_order_id,
-            "price": str(order.price),
-            "origQty": str(order.amount),
-            "executedQty": str(order.amount),
-            "cummulativeQuoteQty": str(self.expected_partial_fill_amount * order.price),
-            "status": "PARTIALLY_FILLED",
-            "timeInForce": "GTC",
-            "type": order.order_type.name.upper(),
-            "side": order.trade_type.name.upper(),
-            "stopPrice": "0.0",
-            "icebergQty": "0.0",
-            "time": 1499827319559,
-            "updateTime": 1499827319559,
-            "isWorking": True,
-            "origQuoteOrderQty": str(order.price * order.amount)
+            "status": "PARTIAL_FILLED",
+            "side": "BUY",
+            "created_time": "1686558570.495",
+            "order_id": order.exchange_order_id,
+            "order_tag": "default",
+            "price": order.price,
+            "type": "LIMIT",
+            "quantity": order.amount,
+            "amount": None,
+            "visible": order.amount,
+            "executed": order.amount,
+            "total_fee": 3e-07,
+            "fee_asset": "BTC",
+            "client_order_id": order.client_order_id,
+            "reduce_only": False,
+            "realized_pnl": None,
+            "average_executed_price": 25929.76,
+            "Transactions": [
+                {
+                    "id": 250106143,
+                    "symbol": "SPOT_BTC_USDT",
+                    "fee": 3e-07,
+                    "side": "BUY",
+                    "executed_timestamp": "1686558583.434",
+                    "order_id": 199270475,
+                    "executed_price": 25929.76,
+                    "executed_quantity": 0.0005,
+                    "fee_asset": "BTC",
+                    "is_maker": 1,
+                    "realized_pnl": None
+                }
+            ]
         }
 
     def _order_fills_request_partial_fill_mock_response(self, order: InFlightOrder):
-        return [
-            {
-                "symbol": self.exchange_symbol_for_tokens(order.base_asset, order.quote_asset),
-                "id": self.expected_fill_trade_id,
-                "orderId": int(order.exchange_order_id),
-                "orderListId": -1,
-                "price": str(self.expected_partial_fill_price),
-                "qty": str(self.expected_partial_fill_amount),
-                "quoteQty": str(self.expected_partial_fill_amount * self.expected_partial_fill_price),
-                "commission": str(self.expected_fill_fee.flat_fees[0].amount),
-                "commissionAsset": self.expected_fill_fee.flat_fees[0].token,
-                "time": 1499865549590,
-                "isBuyer": True,
-                "isMaker": False,
-                "isBestMatch": True
-            }
-        ]
+        return {
+            "success": True,
+            "meta": {
+                "total": 65,
+                "records_per_page": 100,
+                "current_page": 1
+            },
+            "rows": [
+                {
+                    "id": self.expected_fill_trade_id,
+                    "symbol": self.exchange_symbol_for_tokens(order.base_asset, order.quote_asset),
+                    "fee": self.expected_fill_fee.flat_fees[0].amount,
+                    "side": "BUY",
+                    "executed_timestamp": "1686585723.908",
+                    "order_id": int(order.exchange_order_id),
+                    "order_tag": "default",
+                    "executed_price": self.expected_partial_fill_price,
+                    "executed_quantity": self.expected_partial_fill_amount,
+                    "fee_asset": self.expected_fill_fee.flat_fees[0].token,
+                    "is_maker": 0,
+                    "realized_pnl": None
+                }
+            ]
+        }
 
     def _order_fills_request_full_fill_mock_response(self, order: InFlightOrder):
-        return [
-            {
-                "symbol": self.exchange_symbol_for_tokens(order.base_asset, order.quote_asset),
-                "id": self.expected_fill_trade_id,
-                "orderId": int(order.exchange_order_id),
-                "orderListId": -1,
-                "price": str(order.price),
-                "qty": str(order.amount),
-                "quoteQty": str(order.amount * order.price),
-                "commission": str(self.expected_fill_fee.flat_fees[0].amount),
-                "commissionAsset": self.expected_fill_fee.flat_fees[0].token,
-                "time": 1499865549590,
-                "isBuyer": True,
-                "isMaker": False,
-                "isBestMatch": True
-            }
-        ]
+        return {
+            "success": True,
+            "meta": {
+                "total": 65,
+                "records_per_page": 100,
+                "current_page": 1
+            },
+            "rows": [
+                {
+                    "id": self.expected_fill_trade_id,
+                    "symbol": self.exchange_symbol_for_tokens(order.base_asset, order.quote_asset),
+                    "fee": self.expected_fill_fee.flat_fees[0].amount,
+                    "side": "BUY",
+                    "executed_timestamp": "1686585723.908",
+                    "order_id": int(order.exchange_order_id),
+                    "order_tag": "default",
+                    "executed_price": order.price,
+                    "executed_quantity": order.amount,
+                    "fee_asset": self.expected_fill_fee.flat_fees[0].token,
+                    "is_maker": 0,
+                    "realized_pnl": None
+                }
+            ]
+        }

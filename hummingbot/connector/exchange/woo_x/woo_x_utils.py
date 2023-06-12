@@ -15,13 +15,16 @@ DEFAULT_FEES = TradeFeeSchema(
     taker_percent_fee_decimal=Decimal("0.03"),
 )
 
+
 def is_exchange_information_valid(exchange_info: Dict[str, Any]) -> bool:
     """
     Verifies if a trading pair is enabled to operate with based on its exchange information
     :param exchange_info: the exchange information for a trading pair
     :return: True if the trading pair is enabled, False otherwise
     """
-    return True
+    category, *rest = exchange_info['symbol'].split('_')
+
+    return category == 'SPOT'
 
 
 class WooXConfigMap(BaseConnectorConfigMap):
@@ -96,7 +99,7 @@ class WooXStagingConfigMap(BaseConnectorConfigMap):
     )
 
     class Config:
-        title = "woo_x"
+        title = "woo_x_staging"
 
 
 OTHER_DOMAINS_KEYS = {"woo_x_staging": WooXStagingConfigMap.construct()}

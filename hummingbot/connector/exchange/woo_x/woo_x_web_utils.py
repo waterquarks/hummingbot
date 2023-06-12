@@ -1,3 +1,4 @@
+import time
 from typing import Callable, Optional
 
 import hummingbot.connector.exchange.woo_x.woo_x_constants as CONSTANTS
@@ -7,7 +8,7 @@ from hummingbot.core.web_assistant.auth import AuthBase
 from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
 
 
-def rest_url(path_url: str, domain: str = CONSTANTS.DEFAULT_DOMAIN) -> str:
+def public_rest_url(path_url: str, domain: str = CONSTANTS.DEFAULT_DOMAIN) -> str:
     """
     Creates a full URL for provided public REST endpoint
     :param path_url: a public REST endpoint
@@ -15,6 +16,10 @@ def rest_url(path_url: str, domain: str = CONSTANTS.DEFAULT_DOMAIN) -> str:
     :return: the full URL to the endpoint
     """
     return CONSTANTS.REST_URLS[domain] + path_url
+
+
+def private_rest_url(path_url: str, domain: str = CONSTANTS.DEFAULT_DOMAIN) -> str:
+    return public_rest_url(path_url, domain)
 
 
 def wss_public_url(domain: str = CONSTANTS.DEFAULT_DOMAIN) -> str:
@@ -40,6 +45,12 @@ def build_api_factory(
     )
 
     return api_factory
+
+async def get_current_server_time(
+    throttler: Optional[AsyncThrottler] = None,
+    domain: str = CONSTANTS.DEFAULT_DOMAIN,
+) -> float:
+    return time.time() * 1e3
 
 
 def create_throttler() -> AsyncThrottler:
