@@ -22,12 +22,12 @@ class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
     _logger: Optional[HummingbotLogger] = None
 
     def __init__(
-        self,
-        auth: WooXAuth,
-        trading_pairs: List[str],
-        connector: 'WooXExchange',
-        api_factory: WebAssistantsFactory,
-        domain: str = CONSTANTS.DEFAULT_DOMAIN
+            self,
+            auth: WooXAuth,
+            trading_pairs: List[str],
+            connector: 'WooXExchange',
+            api_factory: WebAssistantsFactory,
+            domain: str = CONSTANTS.DEFAULT_DOMAIN
     ):
         super().__init__()
 
@@ -65,7 +65,7 @@ class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
         if not response.data['success']:
             self.logger().error(f"Error authenticating the private websocket connection: {json.dumps(response.data)}")
 
-            raise IOError(f"Private websocket connection authentication failed")
+            raise IOError("Private websocket connection authentication failed")
 
         return websocket_assistant
 
