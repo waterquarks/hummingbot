@@ -1,5 +1,4 @@
 import asyncio
-import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from hummingbot.connector.exchange.woo_x import woo_x_constants as CONSTANTS, woo_x_web_utils as web_utils
@@ -75,28 +74,28 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
         :param ws: the websocket assistant used to connect to the exchange
         """
         try:
-            trade_params = []
-            depth_params = []
+            channels = ['trade', 'orderbookupdate']
+
+            topics = []
+
             for trading_pair in self._trading_pairs:
                 symbol = await self._connector.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
-                trade_params.append(f"{symbol.lower()}@trade")
-                depth_params.append(f"{symbol.lower()}@depth@100ms")
-            payload = {
-                "method": "SUBSCRIBE",
-                "params": trade_params,
-                "id": 1
-            }
-            subscribe_trade_request: WSJSONRequest = WSJSONRequest(payload=payload)
 
-            payload = {
-                "method": "SUBSCRIBE",
-                "params": depth_params,
-                "id": 2
-            }
-            subscribe_orderbook_request: WSJSONRequest = WSJSONRequest(payload=payload)
+                for channel in channels:
+                    topics.append(f"{symbol}@{channel}")
 
-            await ws.send(subscribe_trade_request)
-            await ws.send(subscribe_orderbook_request)
+            payloads = [
+                {
+                    "id": str(i),
+                    "topic": topic,
+                    "event": "subscribe"
+                }
+                for i, topic in enumerate(topics)
+            ]
+
+            await asyncio.gather(*[
+                ws.send(WSJSONRequest(payload=payload)) for payload in payloads
+            ])
 
             self.logger().info("Subscribed to public order book and trade channels...")
         except asyncio.CancelledError:
@@ -106,12 +105,17 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
                 "Unexpected error occurred subscribing to order book trading and delta streams...",
                 exc_info=True
             )
+
             raise
 
     async def _connected_websocket_assistant(self) -> WSAssistant:
         ws: WSAssistant = await self._api_factory.get_ws_assistant()
-        await ws.connect(ws_url=CONSTANTS.WSS_URL.format(self._domain),
-                         ping_timeout=CONSTANTS.WS_HEARTBEAT_TIME_INTERVAL)
+
+        await ws.connect(
+            ws_url=web_utils.wss_public_url(self._domain),
+            ping_timeout=CONSTANTS.WS_HEARTBEAT_TIME_INTERVAL
+        )
+
         return ws
 
     async def _order_book_snapshot(self, trading_pair: str) -> OrderBookMessage:
@@ -124,26 +128,45 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
             snapshot_timestamp,
             metadata={"trading_pair": trading_pair}
         )
+
         return snapshot_msg
 
     async def _parse_trade_message(self, raw_message: Dict[str, Any], message_queue: asyncio.Queue):
-        if "result" not in raw_message:
-            trading_pair = await self._connector.trading_pair_associated_to_exchange_symbol(symbol=raw_message["s"])
-            trade_message = WooXOrderBook.trade_message_from_exchange(
-                raw_message, {"trading_pair": trading_pair})
-            message_queue.put_nowait(trade_message)
+        trading_pair = self._connector.trading_pair_associated_to_exchange_symbol(
+            symbol=raw_message['topic'].split('@')[0]
+        )
+
+        trade_message = WooXOrderBook.trade_message_from_exchange(
+            raw_message,
+            {"trading_pair": trading_pair}
+        )
+
+        message_queue.put_nowait(trade_message)
 
     async def _parse_order_book_diff_message(self, raw_message: Dict[str, Any], message_queue: asyncio.Queue):
-        if "result" not in raw_message:
-            trading_pair = await self._connector.trading_pair_associated_to_exchange_symbol(symbol=raw_message["s"])
-            order_book_message: OrderBookMessage = WooXOrderBook.diff_message_from_exchange(
-                raw_message, time.time(), {"trading_pair": trading_pair})
-            message_queue.put_nowait(order_book_message)
+        trading_pair = self._connector.trading_pair_associated_to_exchange_symbol(
+            symbol=raw_message['topic'].split('@')[0]
+        )
+
+        order_book_message: OrderBookMessage = WooXOrderBook.diff_message_from_exchange(
+            raw_message,
+            raw_message['ts'],
+            {"trading_pair": trading_pair}
+        )
+
+        message_queue.put_nowait(order_book_message)
 
     def _channel_originating_message(self, event_message: Dict[str, Any]) -> str:
         channel = ""
-        if "result" not in event_message:
-            event_type = event_message.get("e")
-            channel = (self._diff_messages_queue_key if event_type == CONSTANTS.DIFF_EVENT_TYPE
-                       else self._trade_messages_queue_key)
+
+        if "topic" in event_message:
+            channel = event_message.get("topic").split('@')[1]
+
+            relations = {
+                CONSTANTS.DIFF_EVENT_TYPE: self._diff_messages_queue_key,
+                CONSTANTS.TRADE_EVENT_TYPE: self._trade_messages_queue_key
+            }
+
+            channel = relations.get(channel, "")
+
         return channel

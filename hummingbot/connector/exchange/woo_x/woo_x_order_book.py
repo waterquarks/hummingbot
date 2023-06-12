@@ -31,10 +31,12 @@ class WooXOrderBook(OrderBook):
         }, timestamp=timestamp)
 
     @classmethod
-    def diff_message_from_exchange(cls,
-                                   msg: Dict[str, any],
-                                   timestamp: Optional[float] = None,
-                                   metadata: Optional[Dict] = None) -> OrderBookMessage:
+    def diff_message_from_exchange(
+        cls,
+        msg: Dict[str, any],
+        timestamp: Optional[float] = None,
+        metadata: Optional[Dict] = None
+    ) -> OrderBookMessage:
         """
         Creates a diff message with the changes in the order book received from the exchange
         :param msg: the changes in the order book
@@ -44,16 +46,20 @@ class WooXOrderBook(OrderBook):
         """
         if metadata:
             msg.update(metadata)
+
         return OrderBookMessage(OrderBookMessageType.DIFF, {
-            "trading_pair": msg["trading_pair"],
-            "first_update_id": msg["U"],
-            "update_id": msg["u"],
-            "bids": msg["b"],
-            "asks": msg["a"]
+            "trading_pair": msg['trading_pair'],
+            "update_id": msg['ts'],
+            "bids": msg['data']['bids'],
+            "asks": msg['data']['asks']
         }, timestamp=timestamp)
 
     @classmethod
-    def trade_message_from_exchange(cls, msg: Dict[str, any], metadata: Optional[Dict] = None):
+    def trade_message_from_exchange(
+        cls,
+        msg: Dict[str, any],
+        metadata: Optional[Dict] = None
+    ):
         """
         Creates a trade message with the information from the trade event sent by the exchange
         :param msg: the trade event details sent by the exchange
@@ -62,12 +68,14 @@ class WooXOrderBook(OrderBook):
         """
         if metadata:
             msg.update(metadata)
-        ts = msg["E"]
+
+        timestamp = msg['ts']
+
         return OrderBookMessage(OrderBookMessageType.TRADE, {
-            "trading_pair": msg["trading_pair"],
-            "trade_type": float(TradeType.SELL.value) if msg["m"] else float(TradeType.BUY.value),
-            "trade_id": msg["t"],
-            "update_id": ts,
-            "price": msg["p"],
-            "amount": msg["q"]
-        }, timestamp=ts * 1e-3)
+            "trading_pair": msg['trading_pair'],
+            "trade_type": TradeType[msg['data']["side"]].value,
+            "trade_id": timestamp,
+            "update_id": timestamp,
+            "price": msg['data']['price'],
+            "amount": msg['data']['size']
+        }, timestamp=timestamp * 1e-3)

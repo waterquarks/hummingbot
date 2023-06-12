@@ -1,9 +1,6 @@
 import hashlib
 import hmac
-import json
-from collections import OrderedDict
-from typing import Any, Dict
-from urllib.parse import urlencode
+from typing import Dict
 
 from hummingbot.connector.time_synchronizer import TimeSynchronizer
 from hummingbot.core.web_assistant.auth import AuthBase
@@ -18,47 +15,40 @@ class WooXAuth(AuthBase):
 
     async def rest_authenticate(self, request: RESTRequest) -> RESTRequest:
         """
+        Adds authentication headers to the request
         Adds the server time and the signature to the request, required for authenticated interactions. It also adds
         the required parameter in the request header.
         :param request: the request to be configured for authenticated interaction
         """
-        if request.method == RESTMethod.POST:
-            request.data = self.add_auth_to_params(params=json.loads(request.data))
-        else:
-            request.params = self.add_auth_to_params(params=request.params)
+        timestamp = int(self.time_provider.time() * 1e3)
 
-        headers = {}
-        if request.headers is not None:
-            headers.update(request.headers)
-        headers.update(self.header_for_authentication())
-        request.headers = headers
+        if request.method == RESTMethod.POST:
+            request.headers = self.headers(timestamp, **request.data)
+        else:
+            request.headers = self.headers(timestamp, **request.params)
 
         return request
 
     async def ws_authenticate(self, request: WSRequest) -> WSRequest:
         """
-        This method is intended to configure a websocket request to be authenticated. WooX does not use this
-        functionality
+        This method is intended to configure a websocket request to be authenticated.
+        Woo X does not use this functionality
         """
         return request  # pass-through
 
-    def add_auth_to_params(self,
-                           params: Dict[str, Any]):
-        timestamp = int(self.time_provider.time() * 1e3)
+    def signature(self, timestamp, **kwargs):
+        signable = '&'.join([f"{key}={value}" for key, value in sorted(kwargs.items())]) + f"|{timestamp}"
 
-        request_params = OrderedDict(params or {})
-        request_params["timestamp"] = timestamp
+        return hmac.new(
+            bytes(self.secret_key, "utf-8"),
+            bytes(signable, "utf-8"),
+            hashlib.sha256
+        ).hexdigest().upper()
 
-        signature = self._generate_signature(params=request_params)
-        request_params["signature"] = signature
-
-        return request_params
-
-    def header_for_authentication(self) -> Dict[str, str]:
-        return {"X-MBX-APIKEY": self.api_key}
-
-    def _generate_signature(self, params: Dict[str, Any]) -> str:
-
-        encoded_params_str = urlencode(params)
-        digest = hmac.new(self.secret_key.encode("utf8"), encoded_params_str.encode("utf8"), hashlib.sha256).hexdigest()
-        return digest
+    def headers(self, timestamp, **kwargs) -> Dict[str, str]:
+        return {
+            'content-type': 'application/x-www-form-urlencoded',
+            'x-api-key': self.api_key,
+            'x-api-signature': self.signature(timestamp, **kwargs),
+            'x-api-timestamp': timestamp
+        }

@@ -17,6 +17,14 @@ def rest_url(path_url: str, domain: str = CONSTANTS.DEFAULT_DOMAIN) -> str:
     return CONSTANTS.REST_URLS[domain] + path_url
 
 
+def wss_public_url(domain: str = CONSTANTS.DEFAULT_DOMAIN) -> str:
+    return CONSTANTS.WSS_PUBLIC_URLS[domain]
+
+
+def wss_private_url(domain: str = CONSTANTS.DEFAULT_DOMAIN) -> str:
+    return CONSTANTS.WSS_PRIVATE_URLS[domain]
+
+
 def build_api_factory(
     throttler: Optional[AsyncThrottler] = None,
     time_synchronizer: Optional[TimeSynchronizer] = None,

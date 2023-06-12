@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Any, Dict
 
 from pydantic import Field, SecretStr
 
@@ -10,9 +11,17 @@ CENTRALIZED = True
 EXAMPLE_PAIR = "BTC-USDT"
 
 DEFAULT_FEES = TradeFeeSchema(
-    maker_percent_fee_decimal=Decimal("0.001"),
-    taker_percent_fee_decimal=Decimal("0.001"),
+    maker_percent_fee_decimal=Decimal("0.03"),
+    taker_percent_fee_decimal=Decimal("0.03"),
 )
+
+def is_exchange_information_valid(exchange_info: Dict[str, Any]) -> bool:
+    """
+    Verifies if a trading pair is enabled to operate with based on its exchange information
+    :param exchange_info: the exchange information for a trading pair
+    :return: True if the trading pair is enabled, False otherwise
+    """
+    return True
 
 
 class WooXConfigMap(BaseConnectorConfigMap):
@@ -50,3 +59,44 @@ class WooXConfigMap(BaseConnectorConfigMap):
 
 
 KEYS = WooXConfigMap.construct()
+
+OTHER_DOMAINS = ["woo_x_staging"]
+OTHER_DOMAINS_PARAMETER = {"woo_x_staging": "woo_x_staging"}
+OTHER_DOMAINS_EXAMPLE_PAIR = {"woo_x_staging": "BTC-USDT"}
+OTHER_DOMAINS_DEFAULT_FEES = {"woo_x_staging": DEFAULT_FEES}
+
+class WooXStagingConfigMap(BaseConnectorConfigMap):
+    connector: str = Field(default="woo_x_staging", const=True, client_data=None)
+    public_api_key: SecretStr = Field(
+        default=...,
+        client_data=ClientFieldData(
+            prompt=lambda cm: "Enter your Woo X public API key",
+            is_secure=True,
+            is_connect_key=True,
+            prompt_on_new=True,
+        )
+    )
+    secret_api_key: SecretStr = Field(
+        default=...,
+        client_data=ClientFieldData(
+            prompt=lambda cm: "Enter your Woo X secret API key",
+            is_secure=True,
+            is_connect_key=True,
+            prompt_on_new=True,
+        )
+    )
+    application_id: SecretStr = Field(
+        default=...,
+        client_data=ClientFieldData(
+            prompt=lambda cm: "Enter your Woo X application ID",
+            is_secure=True,
+            is_connect_key=True,
+            prompt_on_new=True,
+        )
+    )
+
+    class Config:
+        title = "woo_x"
+
+
+OTHER_DOMAINS_KEYS = {"woo_x_staging": WooXStagingConfigMap.construct()}

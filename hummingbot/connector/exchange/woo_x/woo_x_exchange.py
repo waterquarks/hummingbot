@@ -32,13 +32,13 @@ class WooXExchange(ExchangePyBase):
     web_utils = web_utils
 
     def __init__(self,
-                 client_config_map: "ClientConfigAdapter",
-                 woo_x_api_key: str,
-                 woo_x_api_secret: str,
-                 trading_pairs: Optional[List[str]] = None,
-                 trading_required: bool = True,
-                 domain: str = CONSTANTS.DEFAULT_DOMAIN,
-                 ):
+        client_config_map: "ClientConfigAdapter",
+        woo_x_api_key: str,
+        woo_x_api_secret: str,
+        trading_pairs: Optional[List[str]] = None,
+        trading_required: bool = True,
+        domain: str = CONSTANTS.DEFAULT_DOMAIN,
+    ):
         self.api_key = woo_x_api_key
         self.secret_key = woo_x_api_secret
         self._domain = domain
