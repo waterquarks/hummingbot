@@ -26,11 +26,11 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         cls.ev_loop = asyncio.get_event_loop()
-        cls.base_asset = "COINALPHA"
-        cls.quote_asset = "HBOT"
+        cls.base_asset = "BTC"
+        cls.quote_asset = "USDT"
         cls.trading_pair = f"{cls.base_asset}-{cls.quote_asset}"
-        cls.ex_trading_pair = cls.base_asset + cls.quote_asset
-        cls.domain = "woo_x_main"
+        cls.ex_trading_pair = f"SPOT_{cls.base_asset}_{cls.quote_asset}"
+        cls.domain = "woo_x"
 
     def setUp(self) -> None:
         super().setUp()
@@ -102,30 +102,49 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
     def _trade_update_event(self):
         resp = {
-            "e": "trade",
-            "E": 123456789,
-            "s": self.ex_trading_pair,
-            "t": 12345,
-            "p": "0.001",
-            "q": "100",
-            "b": 88,
-            "a": 50,
-            "T": 123456785,
-            "m": True,
-            "M": True
+            "topic":"SPOT_BTC_USDT@trade",
+            "ts": 1618820361552,
+            "data":{
+                "symbol":"SPOT_BTC_USDT",
+                "price": 56749.15,
+                "size": 3.92864,
+                "side": "BUY",
+                "source": 0
+            }
         }
+
         return resp
 
     def _order_diff_event(self):
         resp = {
-            "e": "depthUpdate",
-            "E": 123456789,
-            "s": self.ex_trading_pair,
-            "U": 157,
-            "u": 160,
-            "b": [["0.0024", "10"]],
-            "a": [["0.0026", "100"]]
+            "topic":"SPOT_BTC_USDT@orderbookupdate",
+            "ts":1618826337580,
+            "data":{
+                "symbol":"SPOT_BTC_USDT",
+                "prevTs":1618826337380,
+                "asks":[
+                    [
+                        56749.15,
+                        3.92864
+                    ],
+                    [
+                        56749.8,
+                        0
+                    ],
+                ],
+                "bids":[
+                    [
+                        56745.2,
+                        1.03895025
+                    ],
+                    [
+                        56744.6,
+                        1.0807
+                    ],
+                ]
+            }
         }
+
         return resp
 
     def _snapshot_response(self):
@@ -191,38 +210,53 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
         ws_connect_mock.return_value = self.mocking_assistant.create_websocket_mock()
 
         result_subscribe_trades = {
-            "result": None,
-            "id": 1
+            "id": "0",
+            "event": "subscribe",
+            "success": True,
+            "ts": 1609924478533
         }
+
         result_subscribe_diffs = {
-            "result": None,
-            "id": 2
+            "id": "1",
+            "event": "subscribe",
+            "success": True,
+            "ts": 1609924478533
         }
 
         self.mocking_assistant.add_websocket_aiohttp_message(
             websocket_mock=ws_connect_mock.return_value,
-            message=json.dumps(result_subscribe_trades))
+            message=json.dumps(result_subscribe_trades)
+        )
+
         self.mocking_assistant.add_websocket_aiohttp_message(
             websocket_mock=ws_connect_mock.return_value,
-            message=json.dumps(result_subscribe_diffs))
+            message=json.dumps(result_subscribe_diffs)
+        )
 
         self.listening_task = self.ev_loop.create_task(self.data_source.listen_for_subscriptions())
 
         self.mocking_assistant.run_until_all_aiohttp_messages_delivered(ws_connect_mock.return_value)
 
         sent_subscription_messages = self.mocking_assistant.json_messages_sent_through_websocket(
-            websocket_mock=ws_connect_mock.return_value)
+            websocket_mock=ws_connect_mock.return_value
+        )
 
         self.assertEqual(2, len(sent_subscription_messages))
+
         expected_trade_subscription = {
-            "method": "SUBSCRIBE",
-            "params": [f"{self.ex_trading_pair.lower()}@trade"],
-            "id": 1}
+            "id": "0",
+            "topic": f"{self.ex_trading_pair}@trade",
+            "event": "subscribe",
+        }
+
         self.assertEqual(expected_trade_subscription, sent_subscription_messages[0])
+
         expected_diff_subscription = {
-            "method": "SUBSCRIBE",
-            "params": [f"{self.ex_trading_pair.lower()}@depth@100ms"],
-            "id": 2}
+            "id": "1",
+            "topic": f"{self.ex_trading_pair}@orderbookupdate",
+            "event": "subscribe",
+        }
+
         self.assertEqual(expected_diff_subscription, sent_subscription_messages[1])
 
         self.assertTrue(self._is_logged(
@@ -323,7 +357,7 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
         msg: OrderBookMessage = self.async_run_with_timeout(msg_queue.get())
 
-        self.assertEqual(12345, msg.trade_id)
+        self.assertEqual(1618820361552, msg.trade_id)
 
     def test_listen_for_order_book_diffs_cancelled(self):
         mock_queue = AsyncMock()
@@ -375,7 +409,7 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
         msg: OrderBookMessage = self.async_run_with_timeout(msg_queue.get())
 
-        self.assertEqual(diff_event["u"], msg.update_id)
+        self.assertEqual(diff_event["ts"], msg.update_id)
 
     @aioresponses()
     def test_listen_for_order_book_snapshots_cancelled_when_fetching_snapshot(self, mock_api):
@@ -413,7 +447,9 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
     @aioresponses()
     def test_listen_for_order_book_snapshots_successful(self, mock_api, ):
         msg_queue: asyncio.Queue = asyncio.Queue()
+
         url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         mock_api.get(regex_url, body=json.dumps(self._snapshot_response()))
@@ -424,4 +460,4 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
         msg: OrderBookMessage = self.async_run_with_timeout(msg_queue.get())
 
-        self.assertEqual(1027024, msg.update_id)
+        self.assertEqual(1686211049066, msg.update_id)
