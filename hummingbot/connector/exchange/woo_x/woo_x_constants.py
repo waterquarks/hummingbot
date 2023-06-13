@@ -33,6 +33,8 @@ CANCEL_ORDER_PATH_URL = '/v1/client/order'
 MY_TRADES_PATH_URL = '/v1/client/trades'
 ACCOUNTS_PATH_URL = '/v1/client/holding'
 GET_TRADES_BY_OID_PATH_URL = '/v1/order/{}/trades'
+GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL = '/v1/client/order/{}'
+
 
 RATE_LIMITS = [
     RateLimit(limit_id=EXCHANGE_INFO_PATH_URL, limit=10, time_interval=1),
