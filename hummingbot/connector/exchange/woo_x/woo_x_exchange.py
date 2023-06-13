@@ -264,17 +264,23 @@ class WooXExchange(ExchangePyBase):
 
     async def _place_cancel(self, order_id: str, tracked_order: InFlightOrder):
         params = {
+            "order_id": tracked_order.exchange_order_id,
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair),
-            "client_order_id": tracked_order.client_order_id,
         }
 
+        print("params: ", params)
+
         cancel_result = await self._api_delete(
-            path_url=CONSTANTS.CANCEL_ORDER_PATH_URL,
+            path_url=CONSTANTS.ORDER_PATH_URL,
             params=params,
             is_auth_required=True
         )
 
-        return cancel_result.get("status") == "CANCEL_SENT"
+        # print("cancel_result: ", cancel_result)
+
+        if cancel_result.get("status") == "CANCEL_SENT":
+            return True
+        return False
 
     async def _format_trading_rules(self, exchange_info: Dict[str, Any]) -> List[TradingRule]:
         result = []
@@ -313,35 +319,31 @@ class WooXExchange(ExchangePyBase):
         """
         async for event_message in self._iter_user_event_queue():
             try:
-                event_type = event_message.get("e")
-                # Refer to https://github.com/woo_x-exchange/woo_x-official-api-docs/blob/master/user-data-stream.md
-                # As per the order update section in WooX the ID of the order being canceled is under the "C" key
-                if event_type == "executionReport":
-                    execution_type = event_message.get("x")
-                    if execution_type != "CANCELED":
-                        client_order_id = event_message.get("c")
-                    else:
-                        client_order_id = event_message.get("C")
+                event_type = event_message.get("topic")
+                if event_type == "executionreport":
+                    event_data = event_message.get("data")
+                    execution_type = event_data.get("status")
+                    client_order_id = event_data.get("clientOrderId")
 
-                    if execution_type == "TRADE":
+                    if execution_type in ["PARTIAL_FILLED", "FILLED"]:
                         tracked_order = self._order_tracker.all_fillable_orders.get(client_order_id)
                         if tracked_order is not None:
                             fee = TradeFeeBase.new_spot_fee(
                                 fee_schema=self.trade_fee_schema(),
                                 trade_type=tracked_order.trade_type,
-                                percent_token=event_message["N"],
-                                flat_fees=[TokenAmount(amount=Decimal(event_message["n"]), token=event_message["N"])]
+                                percent_token=event_data["feeAsset"],
+                                flat_fees=[TokenAmount(amount=Decimal(event_data["fee"]), token=event_data["feeAsset"])]
                             )
                             trade_update = TradeUpdate(
-                                trade_id=str(event_message["t"]),
+                                trade_id=str(event_data["tradeId"]),
                                 client_order_id=client_order_id,
-                                exchange_order_id=str(event_message["i"]),
+                                exchange_order_id=str(event_data["orderId"]),
                                 trading_pair=tracked_order.trading_pair,
                                 fee=fee,
-                                fill_base_amount=Decimal(event_message["l"]),
-                                fill_quote_amount=Decimal(event_message["l"]) * Decimal(event_message["L"]),
-                                fill_price=Decimal(event_message["L"]),
-                                fill_timestamp=event_message["T"] * 1e-3,
+                                fill_base_amount=Decimal(event_data["executedQuantity"]),
+                                fill_quote_amount=Decimal(event_data["executedQuantity"]) * Decimal(event_data["executedPrice"]),
+                                fill_price=Decimal(event_data["executedPrice"]),
+                                fill_timestamp=event_data["timestamp"] * 1e-3,
                             )
                             self._order_tracker.process_trade_update(trade_update)
 
@@ -349,10 +351,10 @@ class WooXExchange(ExchangePyBase):
                     if tracked_order is not None:
                         order_update = OrderUpdate(
                             trading_pair=tracked_order.trading_pair,
-                            update_timestamp=event_message["E"] * 1e-3,
-                            new_state=CONSTANTS.ORDER_STATE[event_message["X"]],
+                            update_timestamp=event_data["timestamp"] * 1e-3,
+                            new_state=CONSTANTS.ORDER_STATE[event_data["status"]],
                             client_order_id=client_order_id,
-                            exchange_order_id=str(event_message["i"]),
+                            exchange_order_id=str(event_data["orderId"]),
                         )
                         self._order_tracker.process_order_update(order_update=order_update)
 
@@ -371,6 +373,7 @@ class WooXExchange(ExchangePyBase):
                 self.logger().error("Unexpected error in user stream listener loop.", exc_info=True)
                 await self._sleep(5.0)
 
+
     async def _all_trade_updates_for_order(self, order: InFlightOrder) -> List[TradeUpdate]:
         trade_updates = []
 
@@ -378,7 +381,6 @@ class WooXExchange(ExchangePyBase):
             exchange_order_id = int(order.exchange_order_id)
             trading_pair = await self.exchange_symbol_associated_to_pair(trading_pair=order.trading_pair)
 
-            # Update the path_url to use the new endpoint and format it with the exchange_order_id
             all_fills_response = await self._api_get(
                 path_url=CONSTANTS.GET_TRADES_BY_OID_PATH_URL.format(exchange_order_id),
                 is_auth_required=True,
@@ -412,21 +414,18 @@ class WooXExchange(ExchangePyBase):
         return trade_updates
 
     async def _request_order_status(self, tracked_order: InFlightOrder) -> OrderUpdate:
-        trading_pair = await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair)
+        client_order_id = tracked_order.client_order_id
         updated_order_data = await self._api_get(
-            path_url=CONSTANTS.ORDER_PATH_URL,
-            params={
-                "symbol": trading_pair,
-                "origClientOrderId": tracked_order.client_order_id},
+            path_url=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL.format(client_order_id),
             is_auth_required=True)
 
         new_state = CONSTANTS.ORDER_STATE[updated_order_data["status"]]
 
         order_update = OrderUpdate(
             client_order_id=tracked_order.client_order_id,
-            exchange_order_id=str(updated_order_data["orderId"]),
-            trading_pair=tracked_order.trading_pair,
-            update_timestamp=updated_order_data["updateTime"] * 1e-3,
+            exchange_order_id=str(updated_order_data["order_id"]),
+            trading_pair=updated_order_data["symbol"],
+            update_timestamp=float(updated_order_data["created_time"]),
             new_state=new_state,
         )
 
