@@ -14,13 +14,13 @@ REST_URLS = {
 }
 
 WSS_PUBLIC_URLS = {
-    "woo_x": "wss://wss.woo.org/ws/stream/ff7607b9-8ca6-4540-b5b2-b8efee350a49",
-    "woo_x_staging": "wss://wss.staging.woo.org/ws/stream/6a9b8f2b-3969-4c96-b127-b6649b7d976d"
+    "woo_x": "wss://wss.woo.org/ws/stream/194c85b6-8114-465c-829c-9fca81e40bf4",
+    "woo_x_staging": "wss://wss.staging.woo.org/ws/stream/194c85b6-8114-465c-829c-9fca81e40bf4"
 }
 
 WSS_PRIVATE_URLS = {
-    "woo_x": "wss://wss.woo.org/ws/stream/ff7607b9-8ca6-4540-b5b2-b8efee350a49",
-    "woo_x_staging": "wss://wss.staging.woo.org/v2/ws/private/stream/6a9b8f2b-3969-4c96-b127-b6649b7d976d"
+    "woo_x": "wss://wss.woo.org/ws/stream/194c85b6-8114-465c-829c-9fca81e40bf4",
+    "woo_x_staging": "wss://wss.staging.woo.org/v2/ws/private/stream/194c85b6-8114-465c-829c-9fca81e40bf4"
 }
 
 WS_HEARTBEAT_TIME_INTERVAL = 30
@@ -29,11 +29,13 @@ EXCHANGE_INFO_PATH_URL = '/v1/public/info'
 MARKET_TRADES_PATH = '/v1/public/market_trades'
 ORDERBOOK_SNAPSHOT_PATH_URL = '/v1/public/orderbook'
 ORDER_PATH_URL = '/v1/order'
+CANCEL_ORDER_PATH_URL = '/v1/client/order'
 MY_TRADES_PATH_URL = '/v1/client/trades'
 ACCOUNTS_PATH_URL = '/v1/client/holding'
 
 RATE_LIMITS = [
     RateLimit(limit_id=EXCHANGE_INFO_PATH_URL, limit=10, time_interval=1),
+    RateLimit(limit_id=CANCEL_ORDER_PATH_URL, limit=10, time_interval=1),
     RateLimit(limit_id=MARKET_TRADES_PATH, limit=10, time_interval=1),
     RateLimit(limit_id=ORDERBOOK_SNAPSHOT_PATH_URL, limit=10, time_interval=1),
     RateLimit(limit_id=ORDER_PATH_URL, limit=10, time_interval=1),
