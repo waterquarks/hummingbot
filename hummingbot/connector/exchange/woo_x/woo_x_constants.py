@@ -8,8 +8,9 @@ MAX_ORDER_ID_LEN = 19
 HBOT_ORDER_ID_PREFIX = ""
 
 REST_URLS = {
+    # "woo_x": "https://api.woo.org",
     "woo_x": "https://api.staging.woo.org",
-    "woo_x_staging": "https://api.staging.woo.org"
+    "woo_x_staging": "https://api.staging.woo.org",
 }
 
 WSS_PUBLIC_URLS = {

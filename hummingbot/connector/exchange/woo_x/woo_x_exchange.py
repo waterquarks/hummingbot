@@ -246,14 +246,12 @@ class WooXExchange(ExchangePyBase):
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair),
             "order_type": self.woo_x_order_type(order_type),
             "side": trade_type.name.upper(),
-            "order_quantity": int(amount),
-            "client_order_id": int(order_id)
+            "order_quantity": float(amount),
+            "client_order_id": order_id
         }
 
         if order_type is OrderType.LIMIT or order_type is OrderType.LIMIT_MAKER:
             data["order_price"] = float(price)
-
-        self.logger().info(f"{data}")
 
         response = await self._api_post(
             path_url=CONSTANTS.ORDER_PATH_URL,

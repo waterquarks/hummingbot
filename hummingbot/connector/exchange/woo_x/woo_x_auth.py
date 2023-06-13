@@ -29,6 +29,8 @@ class WooXAuth(AuthBase):
         else:
             request.headers = self.headers(timestamp, **json.loads(request.data or json.dumps({})))
 
+            request.data = json.loads(request.data or json.dumps({}))
+
         return request
 
     async def ws_authenticate(self, request: WSRequest) -> WSRequest:
