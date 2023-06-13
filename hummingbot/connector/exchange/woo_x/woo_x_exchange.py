@@ -371,34 +371,30 @@ class WooXExchange(ExchangePyBase):
                 self.logger().error("Unexpected error in user stream listener loop.", exc_info=True)
                 await self._sleep(5.0)
 
-    import json
-
     async def _all_trade_updates_for_order(self, order: InFlightOrder) -> List[TradeUpdate]:
         trade_updates = []
 
         if order.exchange_order_id is not None:
             exchange_order_id = int(order.exchange_order_id)
             trading_pair = await self.exchange_symbol_associated_to_pair(trading_pair=order.trading_pair)
-            all_fills_response = await self._api_get(
-                path_url=CONSTANTS.MY_TRADES_PATH_URL,
-                params={
-                    "symbol": trading_pair,
-                    "order_tag": "default",
-                },
-                is_auth_required=True,
-                limit_id=CONSTANTS.MY_TRADES_PATH_URL)
 
-            for trade in all_fills_response:
+            # Update the path_url to use the new endpoint and format it with the exchange_order_id
+            all_fills_response = await self._api_get(
+                path_url=CONSTANTS.GET_TRADES_BY_OID_PATH_URL.format(exchange_order_id),
+                is_auth_required=True,
+                limit_id=CONSTANTS.GET_TRADES_BY_OID_PATH_URL)
+
+            for trade in all_fills_response['rows']:
                 if isinstance(trade, str):
                     print(f"Trade before parsing: {trade}")
                     trade = json.loads(trade)
 
-                exchange_order_id = str(trade["orderId"])
+                exchange_order_id = str(trade["order_id"])
                 fee = TradeFeeBase.new_spot_fee(
                     fee_schema=self.trade_fee_schema(),
                     trade_type=order.trade_type,
-                    percent_token=trade["commissionAsset"],
-                    flat_fees=[TokenAmount(amount=Decimal(trade["commission"]), token=trade["commissionAsset"])]
+                    percent_token=trade["fee_asset"],
+                    flat_fees=[TokenAmount(amount=Decimal(str(trade["fee"])), token=trade["fee_asset"])]
                 )
                 trade_update = TradeUpdate(
                     trade_id=str(trade["id"]),
@@ -406,10 +402,10 @@ class WooXExchange(ExchangePyBase):
                     exchange_order_id=exchange_order_id,
                     trading_pair=trading_pair,
                     fee=fee,
-                    fill_base_amount=Decimal(trade["qty"]),
-                    fill_quote_amount=Decimal(trade["quoteQty"]),
-                    fill_price=Decimal(trade["price"]),
-                    fill_timestamp=trade["time"] * 1e-3,
+                    fill_base_amount=Decimal(str(trade["executed_quantity"])),
+                    fill_quote_amount=Decimal(str(trade["executed_price"])) * Decimal(str(trade["executed_quantity"])),
+                    fill_price=Decimal(str(trade["executed_price"])),
+                    fill_timestamp=float(trade["executed_timestamp"]) * 1e-3,
                 )
                 trade_updates.append(trade_update)
 
