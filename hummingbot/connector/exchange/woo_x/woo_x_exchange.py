@@ -1,4 +1,5 @@
 import asyncio
+import json
 import secrets
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
@@ -259,16 +260,16 @@ class WooXExchange(ExchangePyBase):
             is_auth_required=True
         )
 
-        return str(response["order_id"]), int(response['timestamp']) * 1e3
+        return str(response["order_id"]), int(float(response['timestamp']) * 1e3)
 
     async def _place_cancel(self, order_id: str, tracked_order: InFlightOrder):
         params = {
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair),
-            "order_id": tracked_order.exchange_order_id,
+            "client_order_id": tracked_order.client_order_id,
         }
 
         cancel_result = await self._api_delete(
-            path_url=CONSTANTS.ORDER_PATH_URL,
+            path_url=CONSTANTS.CANCEL_ORDER_PATH_URL,
             params=params,
             is_auth_required=True
         )
@@ -280,18 +281,19 @@ class WooXExchange(ExchangePyBase):
 
         for entry in filter(woo_x_utils.is_exchange_information_valid, exchange_info.get("rows", [])):
             try:
-                result.append(
-                    TradingRule(
-                        await self.trading_pair_associated_to_exchange_symbol(symbol=entry.get("symbol")),
-                        min_order_size=Decimal(entry['base_min']),
-                        min_price_increment=Decimal(entry['quote_tick']),
-                        min_base_amount_increment=Decimal(entry['base_tick']),
-                        min_notional_size=Decimal(entry['min_notional'])
+                trading_pair = await self.trading_pair_associated_to_exchange_symbol(symbol=entry.get("symbol"))
+                trading_rule = TradingRule(
+                        trading_pair=trading_pair,
+                        min_order_size=Decimal(str(entry['base_min'])),
+                        min_price_increment=Decimal(str(entry['quote_tick'])),
+                        min_base_amount_increment=Decimal(str(entry['base_tick'])),
+                        min_notional_size=Decimal(str(entry['min_notional']))
                     )
-                )
+
+                result.append(trading_rule)
+
             except Exception:
                 self.logger().exception(f"Error parsing the trading pair rule {entry}. Skipping.")
-
         return result
 
     async def _status_polling_loop_fetch_updates(self):
@@ -369,6 +371,7 @@ class WooXExchange(ExchangePyBase):
                 self.logger().error("Unexpected error in user stream listener loop.", exc_info=True)
                 await self._sleep(5.0)
 
+    import json
 
     async def _all_trade_updates_for_order(self, order: InFlightOrder) -> List[TradeUpdate]:
         trade_updates = []
@@ -380,12 +383,16 @@ class WooXExchange(ExchangePyBase):
                 path_url=CONSTANTS.MY_TRADES_PATH_URL,
                 params={
                     "symbol": trading_pair,
-                    "orderId": exchange_order_id
+                    "order_tag": "default",
                 },
                 is_auth_required=True,
                 limit_id=CONSTANTS.MY_TRADES_PATH_URL)
 
             for trade in all_fills_response:
+                if isinstance(trade, str):
+                    print(f"Trade before parsing: {trade}")
+                    trade = json.loads(trade)
+
                 exchange_order_id = str(trade["orderId"])
                 fee = TradeFeeBase.new_spot_fee(
                     fee_schema=self.trade_fee_schema(),
