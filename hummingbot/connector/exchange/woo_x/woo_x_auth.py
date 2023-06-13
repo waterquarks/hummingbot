@@ -1,6 +1,7 @@
 import hashlib
 import hmac
-import logging
+import json
+import time
 from typing import Dict
 
 from hummingbot.connector.time_synchronizer import TimeSynchronizer
@@ -21,14 +22,12 @@ class WooXAuth(AuthBase):
         the required parameter in the request header.
         :param request: the request to be configured for authenticated interaction
         """
-        timestamp = str(int(self.time_provider.time() * 1e3))
+        timestamp = str(int(time.time() * 1e3))
 
-        if request.method == RESTMethod.POST:
-            logging.info(f"{request.data}")
-            request.headers = self.headers(timestamp, **(request.data or {}))
-        else:
-            logging.info(f"{request.params}")
+        if request.method == RESTMethod.GET:
             request.headers = self.headers(timestamp, **(request.params or {}))
+        else:
+            request.headers = self.headers(timestamp, **json.loads(request.data or json.dumps({})))
 
         return request
 
@@ -50,8 +49,9 @@ class WooXAuth(AuthBase):
 
     def headers(self, timestamp, **kwargs) -> Dict[str, str]:
         return {
-            'content-type': 'application/x-www-form-urlencoded',
+            'x-api-timestamp': timestamp,
             'x-api-key': self.api_key,
             'x-api-signature': self.signature(timestamp, **kwargs),
-            'x-api-timestamp': timestamp
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cache-Control': 'no-cache',
         }

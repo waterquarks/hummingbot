@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
@@ -11,14 +12,18 @@ from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source impor
 from hummingbot.connector.exchange.woo_x.woo_x_auth import WooXAuth
 from hummingbot.connector.exchange_py_base import ExchangePyBase
 from hummingbot.connector.trading_rule import TradingRule
-from hummingbot.connector.utils import TradeFillOrderDetails, combine_to_hb_trading_pair
+from hummingbot.connector.utils import (
+    TradeFillOrderDetails,
+    combine_to_hb_trading_pair,
+    get_new_numeric_client_order_id,
+)
 from hummingbot.core.data_type.common import OrderType, TradeType
 from hummingbot.core.data_type.in_flight_order import InFlightOrder, OrderUpdate, TradeUpdate
 from hummingbot.core.data_type.order_book_tracker_data_source import OrderBookTrackerDataSource
 from hummingbot.core.data_type.trade_fee import DeductedFromReturnsTradeFee, TokenAmount, TradeFeeBase
 from hummingbot.core.data_type.user_stream_tracker_data_source import UserStreamTrackerDataSource
 from hummingbot.core.event.events import MarketEvent, OrderFilledEvent
-from hummingbot.core.utils.async_utils import safe_gather
+from hummingbot.core.utils.async_utils import safe_ensure_future, safe_gather
 from hummingbot.core.web_assistant.connections.data_types import RESTMethod
 from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
 
@@ -51,7 +56,10 @@ class WooXExchange(ExchangePyBase):
 
     @staticmethod
     def woo_x_order_type(order_type: OrderType) -> str:
-        return order_type.name.upper()
+        if order_type.name == 'LIMIT_MAKER':
+            return 'POST_ONLY'
+        else:
+            return order_type.name.upper()
 
     @staticmethod
     def to_hb_order_type(woo_x_type: str) -> OrderType:
@@ -165,61 +173,109 @@ class WooXExchange(ExchangePyBase):
 
         return DeductedFromReturnsTradeFee(percent=self.estimate_fee_pct(is_maker))
 
-    async def _place_order(self,
-                           order_id: str,
-                           trading_pair: str,
-                           amount: Decimal,
-                           trade_type: TradeType,
-                           order_type: OrderType,
-                           price: Decimal,
-                           **kwargs) -> Tuple[str, float]:
-        order_result = None
-        amount_str = f"{amount:f}"
-        type_str = WooXExchange.woo_x_order_type(order_type)
-        side_str = trade_type.name.upper()
-        symbol = await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
-        api_params = {"symbol": symbol,
-                      "side": side_str,
-                      "quantity": amount_str,
-                      "type": type_str,
-                      "newClientOrderId": order_id}
-        if order_type is OrderType.LIMIT or order_type is OrderType.LIMIT_MAKER:
-            price_str = f"{price:f}"
-            api_params["price"] = price_str
-        if order_type == OrderType.LIMIT:
-            api_params["timeInForce"] = CONSTANTS.TIME_IN_FORCE_GTC
+    def buy(self,
+            trading_pair: str,
+            amount: Decimal,
+            order_type=OrderType.LIMIT,
+            price: Decimal = s_decimal_NaN,
+            **kwargs) -> str:
+        """
+        Creates a promise to create a buy order using the parameters
 
-        try:
-            order_result = await self._api_post(
-                path_url=CONSTANTS.ORDER_PATH_URL,
-                data=api_params,
-                is_auth_required=True)
-            o_id = str(order_result["orderId"])
-            transact_time = order_result["transactTime"] * 1e-3
-        except IOError as e:
-            error_description = str(e)
-            is_server_overloaded = ("status is 503" in error_description
-                                    and "Unknown error, please check your request or try again later." in error_description)
-            if is_server_overloaded:
-                o_id = "UNKNOWN"
-                transact_time = self._time_synchronizer.time()
-            else:
-                raise
-        return o_id, transact_time
+        :param trading_pair: the token pair to operate with
+        :param amount: the order amount
+        :param order_type: the type of order to create (MARKET, LIMIT, LIMIT_MAKER)
+        :param price: the order price
+
+        :return: the id assigned by the connector to the order (the client id)
+        """
+        order_id = str(secrets.randbelow(9223372036854775807))
+
+        safe_ensure_future(self._create_order(
+            trade_type=TradeType.BUY,
+            order_id=order_id,
+            trading_pair=trading_pair,
+            amount=amount,
+            order_type=order_type,
+            price=price,
+            **kwargs)
+        )
+
+        return order_id
+
+    def sell(self,
+             trading_pair: str,
+             amount: Decimal,
+             order_type: OrderType = OrderType.LIMIT,
+             price: Decimal = s_decimal_NaN,
+             **kwargs) -> str:
+        """
+        Creates a promise to create a sell order using the parameters.
+        :param trading_pair: the token pair to operate with
+        :param amount: the order amount
+        :param order_type: the type of order to create (MARKET, LIMIT, LIMIT_MAKER)
+        :param price: the order price
+        :return: the id assigned by the connector to the order (the client id)
+        """
+
+        order_id = str(secrets.randbelow(9223372036854775807))
+
+        safe_ensure_future(self._create_order(
+            trade_type=TradeType.SELL,
+            order_id=order_id,
+            trading_pair=trading_pair,
+            amount=amount,
+            order_type=order_type,
+            price=price,
+            **kwargs)
+        )
+
+        return order_id
+
+    async def _place_order(
+        self,
+        order_id: str,
+        trading_pair: str,
+        amount: Decimal,
+        trade_type: TradeType,
+        order_type: OrderType,
+        price: Decimal,
+        **kwargs
+    ) -> Tuple[str, float]:
+        data = {
+            "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair),
+            "order_type": self.woo_x_order_type(order_type),
+            "side": trade_type.name.upper(),
+            "order_quantity": int(amount),
+            "client_order_id": int(order_id)
+        }
+
+        if order_type is OrderType.LIMIT or order_type is OrderType.LIMIT_MAKER:
+            data["order_price"] = float(price)
+
+        self.logger().info(f"{data}")
+
+        response = await self._api_post(
+            path_url=CONSTANTS.ORDER_PATH_URL,
+            data=data,
+            is_auth_required=True
+        )
+
+        return str(response["order_id"]), int(response['timestamp']) * 1e3
 
     async def _place_cancel(self, order_id: str, tracked_order: InFlightOrder):
-        symbol = await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair)
-        api_params = {
-            "symbol": symbol,
-            "origClientOrderId": order_id,
+        params = {
+            "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair),
+            "order_id": tracked_order.exchange_order_id,
         }
+
         cancel_result = await self._api_delete(
             path_url=CONSTANTS.ORDER_PATH_URL,
-            params=api_params,
-            is_auth_required=True)
-        if cancel_result.get("status") == "CANCELED":
-            return True
-        return False
+            params=params,
+            is_auth_required=True
+        )
+
+        return cancel_result.get("status") == "CANCEL_SENT"
 
     async def _format_trading_rules(self, exchange_info: Dict[str, Any]) -> List[TradingRule]:
         result = []

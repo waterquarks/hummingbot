@@ -1,4 +1,7 @@
+import logging
+
 import aiohttp
+
 from hummingbot.core.web_assistant.connections.data_types import RESTRequest, RESTResponse
 
 
