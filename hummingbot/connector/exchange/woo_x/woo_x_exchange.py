@@ -268,7 +268,7 @@ class WooXExchange(ExchangePyBase):
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair),
         }
 
-        print("params: ", params)
+        # print("params: ", params)
 
         cancel_result = await self._api_delete(
             path_url=CONSTANTS.ORDER_PATH_URL,
@@ -358,6 +358,10 @@ class WooXExchange(ExchangePyBase):
                         )
                         self._order_tracker.process_order_update(order_update=order_update)
 
+                    if tracked_order is None:
+                        print(f"Order not found: {client_order_id}, {event_data['orderId']}, {event_data['status']}")
+                        return "Order not found"
+
                 elif event_type == "outboundAccountPosition":
                     balances = event_message["B"]
                     for balance_entry in balances:
@@ -388,7 +392,7 @@ class WooXExchange(ExchangePyBase):
 
             for trade in all_fills_response['rows']:
                 if isinstance(trade, str):
-                    print(f"Trade before parsing: {trade}")
+                    # print(f"Trade before parsing: {trade}")
                     trade = json.loads(trade)
 
                 exchange_order_id = str(trade["order_id"])
