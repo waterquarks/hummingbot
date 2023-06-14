@@ -9,17 +9,17 @@ HBOT_ORDER_ID_PREFIX = ""
 
 REST_URLS = {
     "woo_x": "https://api.woo.org",
-    "woo_x_staging": "https://api.staging.woo.org",
+    "woo_x_testnet": "https://api.staging.woo.org",
 }
 
 WSS_PUBLIC_URLS = {
     "woo_x": "wss://wss.woo.org/ws/stream/{}",
-    "woo_x_staging": "wss://wss.staging.woo.org/ws/stream/{}"
+    "woo_x_testnet": "wss://wss.staging.woo.org/ws/stream/{}"
 }
 
 WSS_PRIVATE_URLS = {
     "woo_x": "wss://wss.woo.org/v2/ws/private/stream/{}",
-    "woo_x_staging": "wss://wss.staging.woo.org/v2/ws/private/stream/{}"
+    "woo_x_testnet": "wss://wss.staging.woo.org/v2/ws/private/stream/{}"
 }
 
 WS_HEARTBEAT_TIME_INTERVAL = 30
