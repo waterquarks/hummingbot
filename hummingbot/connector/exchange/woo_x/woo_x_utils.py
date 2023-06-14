@@ -63,13 +63,14 @@ class WooXConfigMap(BaseConnectorConfigMap):
 
 KEYS = WooXConfigMap.construct()
 
-OTHER_DOMAINS = ["woo_x_staging"]
-OTHER_DOMAINS_PARAMETER = {"woo_x_staging": "woo_x_staging"}
-OTHER_DOMAINS_EXAMPLE_PAIR = {"woo_x_staging": "BTC-USDT"}
-OTHER_DOMAINS_DEFAULT_FEES = {"woo_x_staging": DEFAULT_FEES}
+OTHER_DOMAINS = ["woo_x_testnet"]
+OTHER_DOMAINS_PARAMETER = {"woo_x_testnet": "woo_x_testnet"}
+OTHER_DOMAINS_EXAMPLE_PAIR = {"woo_x_testnet": "BTC-USDT"}
+OTHER_DOMAINS_DEFAULT_FEES = {"woo_x_testnet": DEFAULT_FEES}
 
-class WooXStagingConfigMap(BaseConnectorConfigMap):
-    connector: str = Field(default="woo_x_staging", const=True, client_data=None)
+
+class WooXTestnetConfigMap(BaseConnectorConfigMap):
+    connector: str = Field(default="woo_x_testnet", const=True, client_data=None)
     public_api_key: SecretStr = Field(
         default=...,
         client_data=ClientFieldData(
@@ -99,7 +100,7 @@ class WooXStagingConfigMap(BaseConnectorConfigMap):
     )
 
     class Config:
-        title = "woo_x_staging"
+        title = "woo_x_testnet"
 
 
-OTHER_DOMAINS_KEYS = {"woo_x_staging": WooXStagingConfigMap.construct()}
+OTHER_DOMAINS_KEYS = {"woo_x_testnet": WooXTestnetConfigMap.construct()}
