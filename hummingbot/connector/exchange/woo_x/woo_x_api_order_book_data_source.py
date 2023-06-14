@@ -151,8 +151,6 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
             {"trading_pair": trading_pair}
         )
 
-        # self.logger().info(f"{order_book_message}")
-
         message_queue.put_nowait(order_book_message)
 
     def _channel_originating_message(self, event_message: Dict[str, Any]) -> str:

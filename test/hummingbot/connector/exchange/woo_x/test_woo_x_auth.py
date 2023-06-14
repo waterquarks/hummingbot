@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import hmac
+import json
 from copy import copy
 from unittest import TestCase
 from unittest.mock import MagicMock
@@ -22,11 +23,9 @@ class WooXAuthTests(TestCase):
         return ret
 
     def test_rest_authenticate(self):
-        timestamp = 1686452155
-
         mock_time_provider = MagicMock()
 
-        mock_time_provider.time.return_value = timestamp
+        mock_time_provider.time.return_value = 1686452155.0
 
         data = {
             "symbol": "SPOT_BTC_USDT",
@@ -36,13 +35,15 @@ class WooXAuthTests(TestCase):
             "order_quantity": 1,
         }
 
+        timestamp = str(int(mock_time_provider.time.return_value * 1e3))
+
         auth = WooXAuth(api_key=self._api_key, secret_key=self._secret, time_provider=mock_time_provider)
 
-        request = RESTRequest(method=RESTMethod.POST, data=data, is_auth_required=True)
+        request = RESTRequest(method=RESTMethod.POST, data=json.dumps(data), is_auth_required=True)
 
         configured_request = self.async_run_with_timeout(auth.rest_authenticate(request))
 
-        signable = '&'.join([f"{key}={value}" for key, value in sorted(data.items())]) + f"|{int(timestamp * 1e3)}"
+        signable = '&'.join([f"{key}={value}" for key, value in sorted(data.items())]) + f"|{timestamp}"
 
         signature = (
             hmac.new(
@@ -53,13 +54,14 @@ class WooXAuthTests(TestCase):
         )
 
         headers = {
-            'content-type': 'application/x-www-form-urlencoded',
             'x-api-key': self._api_key,
             'x-api-signature': signature,
-            'x-api-timestamp': int(timestamp * 1e3)
+            'x-api-timestamp': timestamp,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cache-Control': 'no-cache',
         }
 
-        self.assertEqual(int(timestamp * 1e3), configured_request.headers['x-api-timestamp'])
+        self.assertEqual(timestamp, configured_request.headers['x-api-timestamp'])
 
         self.assertEqual(signature, configured_request.headers['x-api-signature'])
 
