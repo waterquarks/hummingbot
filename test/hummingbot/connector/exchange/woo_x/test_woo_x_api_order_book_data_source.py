@@ -45,8 +45,9 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
         self.connector = WooXExchange(
             client_config_map=client_config_map,
-            woo_x_api_key="",
-            woo_x_api_secret="",
+            public_api_key="",
+            secret_api_key="",
+            application_id="",
             trading_pairs=[],
             trading_required=False,
             domain=self.domain
@@ -167,7 +168,7 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
     @aioresponses()
     def test_get_new_order_book_successful(self, mock_api):
-        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.public_rest_url(path_url=CONSTANTS.ORDERBOOK_SNAPSHOT_PATH_URL, domain=self.domain)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         resp = self._snapshot_response()
@@ -194,7 +195,7 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
     @aioresponses()
     def test_get_new_order_book_raises_exception(self, mock_api):
-        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.public_rest_url(path_url=CONSTANTS.ORDERBOOK_SNAPSHOT_PATH_URL, domain=self.domain)
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
@@ -413,7 +414,7 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
     @aioresponses()
     def test_listen_for_order_book_snapshots_cancelled_when_fetching_snapshot(self, mock_api):
-        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.public_rest_url(path_url=CONSTANTS.ORDERBOOK_SNAPSHOT_PATH_URL, domain=self.domain)
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
@@ -431,7 +432,7 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
         msg_queue: asyncio.Queue = asyncio.Queue()
         sleep_mock.side_effect = lambda _: self._create_exception_and_unlock_test_with_event(asyncio.CancelledError())
 
-        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.public_rest_url(path_url=CONSTANTS.ORDERBOOK_SNAPSHOT_PATH_URL, domain=self.domain)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
         mock_api.get(regex_url, exception=Exception, repeat=True)
@@ -448,7 +449,7 @@ class WooXAPIOrderBookDataSourceUnitTests(unittest.TestCase):
     def test_listen_for_order_book_snapshots_successful(self, mock_api, ):
         msg_queue: asyncio.Queue = asyncio.Queue()
 
-        url = web_utils.rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL, domain=self.domain)
+        url = web_utils.public_rest_url(path_url=CONSTANTS.ORDERBOOK_SNAPSHOT_PATH_URL, domain=self.domain)
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
