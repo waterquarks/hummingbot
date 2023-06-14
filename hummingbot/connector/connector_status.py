@@ -39,7 +39,7 @@ connector_status = {
     'probit': 'bronze',
     'whitebit': 'bronze',
     'woo_x': 'bronze',
-    'woo_x_staging': 'bronze',
+    'woo_x_testnet': 'bronze',
     'ciex': 'bronze',
     'uniswap': 'gold',
     'uniswapLP': 'gold',
