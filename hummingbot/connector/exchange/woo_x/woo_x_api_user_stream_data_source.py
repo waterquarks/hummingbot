@@ -1,6 +1,7 @@
+import asyncio
 import json
 import time
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from hummingbot.connector.exchange.woo_x import woo_x_constants as CONSTANTS, woo_x_web_utils as web_utils
 from hummingbot.connector.exchange.woo_x.woo_x_auth import WooXAuth
@@ -91,3 +92,18 @@ class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
                 raise IOError(f"Error subscribing to the {channel} channel: {json.dumps(response)}")
 
         self.logger().info("Subscribed to private account and orders channels...")
+
+    async def _process_websocket_messages(self, websocket_assistant: WSAssistant, queue: asyncio.Queue):
+        async def ping(): await websocket_assistant.send(WSJSONRequest(payload={'event': 'ping'}))
+
+        async for ws_response in websocket_assistant.iter_messages():
+            data = ws_response.data
+
+            if data.get('event') == 'ping': asyncio.ensure_future(ping())
+
+            await self._process_event_message(event_message=data, queue=queue)
+
+
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+        if len(event_message) > 0:
+            queue.put_nowait(event_message)

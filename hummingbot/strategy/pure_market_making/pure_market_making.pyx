@@ -721,6 +721,7 @@ cdef class PureMarketMakingStrategy(StrategyBase):
                                            (self._logging_options & self.OPTION_LOG_STATUS_REPORT))
             cdef object proposal
         try:
+            # self.logger().info(f"{self._create_timestamp} {self.current_timestamp} {self._current_timestamp}")
             if not self._all_markets_ready:
                 self._all_markets_ready = all([market.ready for market in self._sb_markets])
                 if self._asset_price_delegate is not None and self._all_markets_ready:
