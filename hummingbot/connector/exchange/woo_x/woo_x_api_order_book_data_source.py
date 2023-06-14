@@ -141,7 +141,7 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
         message_queue.put_nowait(trade_message)
 
     async def _parse_order_book_diff_message(self, raw_message: Dict[str, Any], message_queue: asyncio.Queue):
-        trading_pair = self._connector.trading_pair_associated_to_exchange_symbol(
+        trading_pair = await self._connector.trading_pair_associated_to_exchange_symbol(
             symbol=raw_message['topic'].split('@')[0]
         )
 
@@ -150,6 +150,8 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
             raw_message['ts'],
             {"trading_pair": trading_pair}
         )
+
+        # self.logger().info(f"{order_book_message}")
 
         message_queue.put_nowait(order_book_message)
 
