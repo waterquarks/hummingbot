@@ -14,13 +14,13 @@ REST_URLS = {
 }
 
 WSS_PUBLIC_URLS = {
-    "woo_x": "wss://wss.woo.org/ws/stream/194c85b6-8114-465c-829c-9fca81e40bf4",
-    "woo_x_staging": "wss://wss.staging.woo.org/ws/stream/194c85b6-8114-465c-829c-9fca81e40bf4"
+    "woo_x": "wss://wss.woo.org/ws/stream/{}",
+    "woo_x_staging": "wss://wss.staging.woo.org/ws/stream/{}"
 }
 
 WSS_PRIVATE_URLS = {
-    "woo_x": "wss://wss.woo.org/ws/stream/194c85b6-8114-465c-829c-9fca81e40bf4",
-    "woo_x_staging": "wss://wss.staging.woo.org/v2/ws/private/stream/194c85b6-8114-465c-829c-9fca81e40bf4"
+    "woo_x": "wss://wss.woo.org/ws/stream/{}",
+    "woo_x_staging": "wss://wss.staging.woo.org/v2/ws/private/stream/{}"
 }
 
 WS_HEARTBEAT_TIME_INTERVAL = 30
@@ -45,6 +45,7 @@ RATE_LIMITS = [
     RateLimit(limit_id=ORDER_PATH_URL, limit=10, time_interval=1),
     RateLimit(limit_id=MY_TRADES_PATH_URL, limit=10, time_interval=1),
     RateLimit(limit_id=ACCOUNTS_PATH_URL, limit=10, time_interval=1),
+    RateLimit(limit_id=GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL, limit=10, time_interval=1)
 ]
 
 # Websocket event types

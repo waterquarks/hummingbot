@@ -24,12 +24,12 @@ class WooXAuth(AuthBase):
         """
         timestamp = str(int(time.time() * 1e3))
 
-        if request.method == RESTMethod.GET:
-            request.headers = self.headers(timestamp, **(request.params or {}))
-        else:
+        if request.method == RESTMethod.POST:
             request.headers = self.headers(timestamp, **json.loads(request.data or json.dumps({})))
 
-            request.data = json.loads(request.data or json.dumps({}))
+            request.data = json.loads(request.data or json.dumps({})) # Allow aiohttp to send as application/x-www-form-urlencoded
+        else:
+            request.headers = self.headers(timestamp, **(request.params or {}))
 
         return request
 

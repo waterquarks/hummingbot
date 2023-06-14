@@ -264,23 +264,17 @@ class WooXExchange(ExchangePyBase):
 
     async def _place_cancel(self, order_id: str, tracked_order: InFlightOrder):
         params = {
-            "order_id": tracked_order.exchange_order_id,
+            "client_order_id": order_id,
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair),
         }
 
-        # print("params: ", params)
-
         cancel_result = await self._api_delete(
-            path_url=CONSTANTS.ORDER_PATH_URL,
+            path_url=CONSTANTS.CANCEL_ORDER_PATH_URL,
             params=params,
             is_auth_required=True
         )
 
-        # print("cancel_result: ", cancel_result)
-
-        if cancel_result.get("status") == "CANCEL_SENT":
-            return True
-        return False
+        return cancel_result.get("status") == "CANCEL_SENT"
 
     async def _format_trading_rules(self, exchange_info: Dict[str, Any]) -> List[TradingRule]:
         result = []
@@ -359,7 +353,6 @@ class WooXExchange(ExchangePyBase):
                         self._order_tracker.process_order_update(order_update=order_update)
 
                     if tracked_order is None:
-                        print(f"Order not found: {client_order_id}, {event_data['orderId']}, {event_data['status']}")
                         return "Order not found"
 
                 elif event_type == "outboundAccountPosition":
@@ -419,9 +412,12 @@ class WooXExchange(ExchangePyBase):
 
     async def _request_order_status(self, tracked_order: InFlightOrder) -> OrderUpdate:
         client_order_id = tracked_order.client_order_id
+
         updated_order_data = await self._api_get(
             path_url=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL.format(client_order_id),
-            is_auth_required=True)
+            is_auth_required=True,
+            limit_id=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL
+        )
 
         new_state = CONSTANTS.ORDER_STATE[updated_order_data["status"]]
 

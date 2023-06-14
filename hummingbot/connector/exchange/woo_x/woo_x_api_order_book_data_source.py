@@ -109,7 +109,7 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
         ws: WSAssistant = await self._api_factory.get_ws_assistant()
 
         await ws.connect(
-            ws_url=web_utils.wss_public_url(self._domain),
+            ws_url=web_utils.wss_public_url(self._domain).format(self._connector.application_id),
             ping_timeout=CONSTANTS.WS_HEARTBEAT_TIME_INTERVAL
         )
 

@@ -44,7 +44,7 @@ class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
         websocket_assistant = await self._api_factory.get_ws_assistant()
 
         await websocket_assistant.connect(
-            ws_url=web_utils.wss_private_url(self._domain),
+            ws_url=web_utils.wss_private_url(self._domain).format(self._connector.application_id),
             message_timeout=CONSTANTS.SECONDS_TO_WAIT_TO_RECEIVE_MESSAGE
         )
 
