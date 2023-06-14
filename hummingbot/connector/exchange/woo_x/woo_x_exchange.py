@@ -411,10 +411,8 @@ class WooXExchange(ExchangePyBase):
         return trade_updates
 
     async def _request_order_status(self, tracked_order: InFlightOrder) -> OrderUpdate:
-        client_order_id = tracked_order.client_order_id
-
         updated_order_data = await self._api_get(
-            path_url=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL.format(client_order_id),
+            path_url=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL.format(tracked_order.client_order_id),
             is_auth_required=True,
             limit_id=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL
         )
@@ -424,7 +422,7 @@ class WooXExchange(ExchangePyBase):
         order_update = OrderUpdate(
             client_order_id=tracked_order.client_order_id,
             exchange_order_id=str(updated_order_data["order_id"]),
-            trading_pair=updated_order_data["symbol"],
+            trading_pair=tracked_order.trading_pair,
             update_timestamp=float(updated_order_data["created_time"]),
             new_state=new_state,
         )
