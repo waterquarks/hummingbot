@@ -359,12 +359,16 @@ class WooXExchange(ExchangePyBase):
                         )
 
                         self._order_tracker.process_order_update(order_update=order_update)
-                elif event_type == "outboundAccountPosition":
-                    balances = event_message["B"]
-                    for balance_entry in balances:
-                        asset_name = balance_entry["a"]
-                        free_balance = Decimal(balance_entry["f"])
-                        total_balance = Decimal(balance_entry["f"]) + Decimal(balance_entry["l"])
+                elif event_type == "balance":
+                    # print(f"balance_event: {event_message}")
+                    balances = event_message["data"]["balances"]
+                    for asset_name, balance_entry in balances.items():
+
+                        free_balance = Decimal(str(balance_entry["holding"]))
+                        frozen_balance = Decimal(str(balance_entry["frozen"]))
+                        total_balance = free_balance + frozen_balance
+                        print(f"{free_balance}, {frozen_balance}, {total_balance}")
+
                         self._account_available_balances[asset_name] = free_balance
                         self._account_balances[asset_name] = total_balance
 
