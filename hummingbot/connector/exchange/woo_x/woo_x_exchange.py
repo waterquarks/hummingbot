@@ -360,24 +360,21 @@ class WooXExchange(ExchangePyBase):
 
                         self._order_tracker.process_order_update(order_update=order_update)
                 elif event_type == "balance":
-                    # print(f"balance_event: {event_message}")
                     balances = event_message["data"]["balances"]
+
                     for asset_name, balance_entry in balances.items():
+                        free, frozen = Decimal(str(balance_entry["holding"])), Decimal(str(balance_entry["frozen"]))
 
-                        free_balance = Decimal(str(balance_entry["holding"]))
-                        frozen_balance = Decimal(str(balance_entry["frozen"]))
-                        total_balance = free_balance + frozen_balance
-                        print(f"{free_balance}, {frozen_balance}, {total_balance}")
+                        total = free + frozen
 
-                        self._account_available_balances[asset_name] = free_balance
-                        self._account_balances[asset_name] = total_balance
+                        self._account_available_balances[asset_name] = free
 
+                        self._account_balances[asset_name] = total
             except asyncio.CancelledError:
                 raise
             except Exception:
                 self.logger().error("Unexpected error in user stream listener loop.", exc_info=True)
                 await self._sleep(5.0)
-
 
     async def _all_trade_updates_for_order(self, order: InFlightOrder) -> List[TradeUpdate]:
         trade_updates = []
