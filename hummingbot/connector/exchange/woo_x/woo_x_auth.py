@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import logging
 import time
 from typing import Dict
 
@@ -22,7 +23,7 @@ class WooXAuth(AuthBase):
         the required parameter in the request header.
         :param request: the request to be configured for authenticated interaction
         """
-        timestamp = str(int(time.time() * 1e3))
+        timestamp = str(int(self.time_provider.time() * 1e3))
 
         if request.method == RESTMethod.POST:
             request.headers = self.headers(timestamp, **json.loads(request.data or json.dumps({})))
