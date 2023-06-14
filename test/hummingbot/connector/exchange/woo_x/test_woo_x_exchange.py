@@ -338,8 +338,9 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
 
         return WooXExchange(
             client_config_map=client_config_map,
-            woo_x_api_key="testAPIKey",
-            woo_x_api_secret="testSecret",
+            public_api_key="testAPIKey",
+            secret_api_key="testSecret",
+            application_id="applicationId",
             trading_pairs=[self.trading_pair],
         )
 

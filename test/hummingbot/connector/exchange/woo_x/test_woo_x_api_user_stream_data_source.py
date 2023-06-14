@@ -51,8 +51,9 @@ class WooXUserStreamDataSourceUnitTests(unittest.TestCase):
         client_config_map = ClientConfigAdapter(ClientConfigMap())
         self.connector = WooXExchange(
             client_config_map=client_config_map,
-            woo_x_api_key="",
-            woo_x_api_secret="",
+            public_api_key="",
+            secret_api_key="",
+            application_id="",
             trading_pairs=[],
             trading_required=False,
             domain=self.domain)
