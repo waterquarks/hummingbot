@@ -18,7 +18,7 @@ WSS_PUBLIC_URLS = {
 }
 
 WSS_PRIVATE_URLS = {
-    "woo_x": "wss://wss.woo.org/ws/stream/{}",
+    "woo_x": "wss://wss.woo.org/v2/ws/private/stream/{}",
     "woo_x_staging": "wss://wss.staging.woo.org/v2/ws/private/stream/{}"
 }
 
