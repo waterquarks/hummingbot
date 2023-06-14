@@ -314,13 +314,17 @@ class WooXExchange(ExchangePyBase):
         async for event_message in self._iter_user_event_queue():
             try:
                 event_type = event_message.get("topic")
+
                 if event_type == "executionreport":
                     event_data = event_message.get("data")
+
                     execution_type = event_data.get("status")
+
                     client_order_id = event_data.get("clientOrderId")
 
                     if execution_type in ["PARTIAL_FILLED", "FILLED"]:
-                        tracked_order = self._order_tracker.all_fillable_orders.get(client_order_id)
+                        tracked_order = self._order_tracker.all_fillable_orders.get(str(client_order_id))
+
                         if tracked_order is not None:
                             fee = TradeFeeBase.new_spot_fee(
                                 fee_schema=self.trade_fee_schema(),
@@ -328,33 +332,33 @@ class WooXExchange(ExchangePyBase):
                                 percent_token=event_data["feeAsset"],
                                 flat_fees=[TokenAmount(amount=Decimal(event_data["fee"]), token=event_data["feeAsset"])]
                             )
+
                             trade_update = TradeUpdate(
                                 trade_id=str(event_data["tradeId"]),
-                                client_order_id=client_order_id,
+                                client_order_id=tracked_order.client_order_id,
                                 exchange_order_id=str(event_data["orderId"]),
                                 trading_pair=tracked_order.trading_pair,
                                 fee=fee,
-                                fill_base_amount=Decimal(event_data["executedQuantity"]),
-                                fill_quote_amount=Decimal(event_data["executedQuantity"]) * Decimal(event_data["executedPrice"]),
-                                fill_price=Decimal(event_data["executedPrice"]),
+                                fill_base_amount=Decimal(str(event_data["executedQuantity"])),
+                                fill_quote_amount=Decimal(str(event_data["executedQuantity"])) * Decimal(str(event_data["executedPrice"])),
+                                fill_price=Decimal(str(event_data["executedPrice"])),
                                 fill_timestamp=event_data["timestamp"] * 1e-3,
                             )
+
                             self._order_tracker.process_trade_update(trade_update)
 
-                    tracked_order = self._order_tracker.all_updatable_orders.get(client_order_id)
+                    tracked_order = self._order_tracker.all_updatable_orders.get(str(client_order_id))
+
                     if tracked_order is not None:
                         order_update = OrderUpdate(
                             trading_pair=tracked_order.trading_pair,
                             update_timestamp=event_data["timestamp"] * 1e-3,
                             new_state=CONSTANTS.ORDER_STATE[event_data["status"]],
-                            client_order_id=client_order_id,
-                            exchange_order_id=str(event_data["orderId"]),
+                            client_order_id=tracked_order.client_order_id,
+                            exchange_order_id=tracked_order.exchange_order_id,
                         )
+
                         self._order_tracker.process_order_update(order_update=order_update)
-
-                    if tracked_order is None:
-                        return "Order not found"
-
                 elif event_type == "outboundAccountPosition":
                     balances = event_message["B"]
                     for balance_entry in balances:
