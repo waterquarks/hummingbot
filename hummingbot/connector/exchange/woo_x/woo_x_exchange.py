@@ -443,7 +443,6 @@ class WooXExchange(ExchangePyBase):
 
     async def _update_balances(self):
         local_asset_names = set(self._account_balances.keys())
-
         remote_asset_names = set()
 
         account_info = await self._api_get(
@@ -451,12 +450,15 @@ class WooXExchange(ExchangePyBase):
             is_auth_required=True
         )
 
-        balances = account_info.get('holding', {})
+        balances = account_info.get('holding', [])
 
-        for asset, holding in balances.items():
+        for balance_info in balances:
+            asset = balance_info['token']
+            holding = balance_info['holding']
+            frozen = balance_info['frozen']
+
             self._account_available_balances[asset] = Decimal(holding)
-            # self._account_balances[asset_name] = Decimal(entry["free"]) + Decimal(entry["locked"])
-            self._account_balances[asset] = Decimal(holding) + Decimal(str(5))
+            self._account_balances[asset] = Decimal(holding) + Decimal(frozen)
             remote_asset_names.add(asset)
 
         asset_names_to_remove = local_asset_names.difference(remote_asset_names)

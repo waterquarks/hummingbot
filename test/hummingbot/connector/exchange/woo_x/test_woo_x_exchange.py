@@ -252,7 +252,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
                 "balances": {
                     self.base_asset: {
                         "holding": 10,
-                        "frozen": 0,
+                        "frozen": 5,
                         "interest": 0.0,
                         "pendingShortQty": 0.0,
                         "pendingExposure": 0.0,
