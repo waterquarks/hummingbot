@@ -816,10 +816,10 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
                 {
                     "id": 250106143,
                     "symbol": "SPOT_BTC_USDT",
+                    "order_id": 199270475,
                     "fee": 3e-07,
                     "side": "BUY",
                     "executed_timestamp": "1686558583.434",
-                    "order_id": 199270475,
                     "executed_price": 25929.76,
                     "executed_quantity": 0.0005,
                     "fee_asset": "BTC",
