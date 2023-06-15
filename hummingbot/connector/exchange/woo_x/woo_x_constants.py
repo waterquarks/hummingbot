@@ -30,7 +30,7 @@ ORDERBOOK_SNAPSHOT_PATH_URL = '/v1/public/orderbook'
 ORDER_PATH_URL = '/v1/order'
 CANCEL_ORDER_PATH_URL = '/v1/client/order'
 MY_TRADES_PATH_URL = '/v1/client/trades'
-ACCOUNTS_PATH_URL = '/v1/client/holding'
+ACCOUNTS_PATH_URL = '/v2/client/holding'
 GET_TRADES_BY_ORDER_ID_PATH = '/v1/order/{}/trades'
 GET_ORDER_BY_CLIENT_ORDER_ID_PATH = '/v1/client/order/{}'
 
