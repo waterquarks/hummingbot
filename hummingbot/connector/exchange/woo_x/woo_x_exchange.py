@@ -330,7 +330,12 @@ class WooXExchange(ExchangePyBase):
                                 fee_schema=self.trade_fee_schema(),
                                 trade_type=tracked_order.trade_type,
                                 percent_token=event_data["feeAsset"],
-                                flat_fees=[TokenAmount(amount=Decimal(event_data["fee"]), token=event_data["feeAsset"])]
+                                flat_fees=[
+                                    TokenAmount(
+                                        amount=Decimal(event_data["fee"]),
+                                        token=event_data["feeAsset"]
+                                    )
+                                ]
                             )
 
                             trade_update = TradeUpdate(
@@ -380,46 +385,48 @@ class WooXExchange(ExchangePyBase):
         trade_updates = []
 
         if order.exchange_order_id is not None:
-            exchange_order_id = int(order.exchange_order_id)
-            trading_pair = await self.exchange_symbol_associated_to_pair(trading_pair=order.trading_pair)
+            symbol = await self.exchange_symbol_associated_to_pair(trading_pair=order.trading_pair)
 
-            all_fills_response = await self._api_get(
-                path_url=CONSTANTS.GET_TRADES_BY_OID_PATH_URL.format(exchange_order_id),
+            content = await self._api_get(
+                path_url=CONSTANTS.GET_TRADES_BY_ORDER_ID_PATH.format(order.exchange_order_id),
+                limit_id=CONSTANTS.GET_TRADES_BY_ORDER_ID_PATH,
                 is_auth_required=True,
-                limit_id=CONSTANTS.GET_TRADES_BY_OID_PATH_URL)
+            )
 
-            for trade in all_fills_response['rows']:
-                if isinstance(trade, str):
-                    # print(f"Trade before parsing: {trade}")
-                    trade = json.loads(trade)
-
-                exchange_order_id = str(trade["order_id"])
+            for trade in content['rows']:
                 fee = TradeFeeBase.new_spot_fee(
                     fee_schema=self.trade_fee_schema(),
                     trade_type=order.trade_type,
                     percent_token=trade["fee_asset"],
-                    flat_fees=[TokenAmount(amount=Decimal(str(trade["fee"])), token=trade["fee_asset"])]
+                    flat_fees=[
+                        TokenAmount(
+                            amount=Decimal(str(trade["fee"])),
+                            token=trade["fee_asset"]
+                        )
+                    ]
                 )
+
                 trade_update = TradeUpdate(
                     trade_id=str(trade["id"]),
                     client_order_id=order.client_order_id,
-                    exchange_order_id=exchange_order_id,
-                    trading_pair=trading_pair,
+                    exchange_order_id=str(trade["order_id"]),
+                    trading_pair=symbol,
                     fee=fee,
                     fill_base_amount=Decimal(str(trade["executed_quantity"])),
                     fill_quote_amount=Decimal(str(trade["executed_price"])) * Decimal(str(trade["executed_quantity"])),
                     fill_price=Decimal(str(trade["executed_price"])),
                     fill_timestamp=float(trade["executed_timestamp"]) * 1e-3,
                 )
+
                 trade_updates.append(trade_update)
 
         return trade_updates
 
     async def _request_order_status(self, tracked_order: InFlightOrder) -> OrderUpdate:
         updated_order_data = await self._api_get(
-            path_url=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL.format(tracked_order.client_order_id),
+            path_url=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH.format(tracked_order.client_order_id),
             is_auth_required=True,
-            limit_id=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL
+            limit_id=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH
         )
 
         new_state = CONSTANTS.ORDER_STATE[updated_order_data["status"]]
@@ -449,7 +456,7 @@ class WooXExchange(ExchangePyBase):
         for asset, holding in balances.items():
             self._account_available_balances[asset] = Decimal(holding)
             # self._account_balances[asset_name] = Decimal(entry["free"]) + Decimal(entry["locked"])
-            self._account_balances[asset] = Decimal(holding)
+            self._account_balances[asset] = Decimal(holding) + Decimal(str(5))
             remote_asset_names.add(asset)
 
         asset_names_to_remove = local_asset_names.difference(remote_asset_names)

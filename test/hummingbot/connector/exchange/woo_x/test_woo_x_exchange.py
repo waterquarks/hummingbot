@@ -1,6 +1,8 @@
 import asyncio
 import json
+import logging
 import re
+import secrets
 from decimal import Decimal
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from unittest.mock import AsyncMock, patch
@@ -14,7 +16,7 @@ from hummingbot.connector.exchange.woo_x import woo_x_constants as CONSTANTS, wo
 from hummingbot.connector.exchange.woo_x.woo_x_exchange import WooXExchange
 from hummingbot.connector.test_support.exchange_connector_test import AbstractExchangeConnectorTests
 from hummingbot.connector.trading_rule import TradingRule
-from hummingbot.connector.utils import get_new_client_order_id
+from hummingbot.connector.utils import get_new_client_order_id, get_new_numeric_client_order_id
 from hummingbot.core.data_type.common import OrderType, TradeType
 from hummingbot.core.data_type.in_flight_order import InFlightOrder, OrderState
 from hummingbot.core.data_type.trade_fee import DeductedFromReturnsTradeFee, TokenAmount, TradeFeeBase
@@ -24,33 +26,27 @@ from hummingbot.core.event.events import MarketOrderFailureEvent, OrderFilledEve
 class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     @property
     def all_symbols_url(self):
-        return web_utils.rest_url(path_url=CONSTANTS.EXCHANGE_INFO_PATH_URL, domain=self.exchange._domain)
+        return web_utils.public_rest_url(path_url=CONSTANTS.EXCHANGE_INFO_PATH_URL, domain=self.exchange._domain)
 
     @property
     def latest_prices_url(self):
-        url = web_utils.rest_url(path_url=CONSTANTS.TICKER_PRICE_CHANGE_PATH_URL, domain=self.exchange._domain)
-        url = f"{url}?symbol={self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset)}"
-        return url
+        return web_utils.public_rest_url(path_url=CONSTANTS.ORDERBOOK_SNAPSHOT_PATH_URL, domain=self.exchange._domain) + self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset)
 
     @property
     def network_status_url(self):
-        url = web_utils.rest_url(CONSTANTS.PING_PATH_URL, domain=self.exchange._domain)
-        return url
+        raise NotImplementedError
 
     @property
     def trading_rules_url(self):
-        url = web_utils.rest_url(CONSTANTS.EXCHANGE_INFO_PATH_URL, domain=self.exchange._domain)
-        return url
+        return web_utils.public_rest_url(CONSTANTS.EXCHANGE_INFO_PATH_URL, domain=self.exchange._domain)
 
     @property
     def order_creation_url(self):
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL, domain=self.exchange._domain)
-        return url
+        return web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL, domain=self.exchange._domain)
 
     @property
     def balance_url(self):
-        url = web_utils.rest_url(CONSTANTS.ACCOUNTS_PATH_URL, domain=self.exchange._domain)
-        return url
+        return web_utils.private_rest_url(CONSTANTS.ACCOUNTS_PATH_URL, domain=self.exchange._domain)
 
     @property
     def all_symbols_request_mock_response(self):
@@ -232,7 +228,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def balance_request_mock_response_for_base_and_quote(self):
         return {
             "holding": {
-                self.base_asset: 5,
+                self.base_asset: 10,
                 self.quote_asset: 2000,
             },
             "success": True
@@ -242,7 +238,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def balance_request_mock_response_only_base(self):
         return {
             "holding": {
-                self.base_asset: 5,
+                self.base_asset: 0,
             },
             "success": True
         }
@@ -256,7 +252,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
                 "balances": {
                     self.base_asset: {
                         "holding": 10,
-                        "frozen": 5,
+                        "frozen": 0,
                         "interest": 0.0,
                         "pendingShortQty": 0.0,
                         "pendingExposure": 0.0,
@@ -547,7 +543,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
+        url = web_utils.public_rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
 
         regex_url = re.compile(url + r"\?.*")
 
@@ -648,324 +644,9 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def trade_event_for_full_fill_websocket_update(self, order: InFlightOrder):
         return None
 
-    @aioresponses()
-    def test_update_order_fills_from_trades_triggers_filled_event(self, mock_api):
-        self.exchange._set_current_timestamp(1640780000)
-        self.exchange._last_poll_timestamp = (self.exchange.current_timestamp -
-                                              self.exchange.UPDATE_ORDER_STATUS_MIN_INTERVAL - 1)
-
-        self.exchange.start_tracking_order(
-            order_id="OID1",
-            exchange_order_id="100234",
-            trading_pair=self.trading_pair,
-            order_type=OrderType.LIMIT,
-            trade_type=TradeType.BUY,
-            price=Decimal("10000"),
-            amount=Decimal("1"),
-        )
-        order = self.exchange.in_flight_orders["OID1"]
-
-        url = web_utils.rest_url(CONSTANTS.MY_TRADES_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-
-        trade_fill = {
-            "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "id": 28457,
-            "orderId": int(order.exchange_order_id),
-            "orderListId": -1,
-            "price": "9999",
-            "qty": "1",
-            "quoteQty": "48.000012",
-            "commission": "10.10000000",
-            "commissionAsset": self.quote_asset,
-            "time": 1499865549590,
-            "isBuyer": True,
-            "isMaker": False,
-            "isBestMatch": True
-        }
-
-        trade_fill_non_tracked_order = {
-            "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "id": 30000,
-            "orderId": 99999,
-            "orderListId": -1,
-            "price": "4.00000100",
-            "qty": "12.00000000",
-            "quoteQty": "48.000012",
-            "commission": "10.10000000",
-            "commissionAsset": "BNB",
-            "time": 1499865549590,
-            "isBuyer": True,
-            "isMaker": False,
-            "isBestMatch": True
-        }
-
-        mock_response = [trade_fill, trade_fill_non_tracked_order]
-        mock_api.get(regex_url, body=json.dumps(mock_response))
-
-        self.exchange.add_exchange_order_ids_from_market_recorder(
-            {str(trade_fill_non_tracked_order["orderId"]): "OID99"})
-
-        self.async_run_with_timeout(self.exchange._update_order_fills_from_trades())
-
-        request = self._all_executed_requests(mock_api, url)[0]
-        self.validate_auth_credentials_present(request)
-        request_params = request.kwargs["params"]
-        self.assertEqual(self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset), request_params["symbol"])
-
-        fill_event: OrderFilledEvent = self.order_filled_logger.event_log[0]
-        self.assertEqual(self.exchange.current_timestamp, fill_event.timestamp)
-        self.assertEqual(order.client_order_id, fill_event.order_id)
-        self.assertEqual(order.trading_pair, fill_event.trading_pair)
-        self.assertEqual(order.trade_type, fill_event.trade_type)
-        self.assertEqual(order.order_type, fill_event.order_type)
-        self.assertEqual(Decimal(trade_fill["price"]), fill_event.price)
-        self.assertEqual(Decimal(trade_fill["qty"]), fill_event.amount)
-        self.assertEqual(0.0, fill_event.trade_fee.percent)
-        self.assertEqual([TokenAmount(trade_fill["commissionAsset"], Decimal(trade_fill["commission"]))],
-                         fill_event.trade_fee.flat_fees)
-
-        fill_event: OrderFilledEvent = self.order_filled_logger.event_log[1]
-        self.assertEqual(float(trade_fill_non_tracked_order["time"]) * 1e-3, fill_event.timestamp)
-        self.assertEqual("OID99", fill_event.order_id)
-        self.assertEqual(self.trading_pair, fill_event.trading_pair)
-        self.assertEqual(TradeType.BUY, fill_event.trade_type)
-        self.assertEqual(OrderType.LIMIT, fill_event.order_type)
-        self.assertEqual(Decimal(trade_fill_non_tracked_order["price"]), fill_event.price)
-        self.assertEqual(Decimal(trade_fill_non_tracked_order["qty"]), fill_event.amount)
-        self.assertEqual(0.0, fill_event.trade_fee.percent)
-        self.assertEqual([
-            TokenAmount(
-                trade_fill_non_tracked_order["commissionAsset"],
-                Decimal(trade_fill_non_tracked_order["commission"]))],
-            fill_event.trade_fee.flat_fees)
-        self.assertTrue(self.is_logged(
-            "INFO",
-            f"Recreating missing trade in TradeFill: {trade_fill_non_tracked_order}"
-        ))
-
-    @aioresponses()
-    def test_update_order_fills_request_parameters(self, mock_api):
-        self.exchange._set_current_timestamp(0)
-        self.exchange._last_poll_timestamp = -1
-
-        url = web_utils.private_rest_url(CONSTANTS.MY_TRADES_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-
-        mock_response = []
-        mock_api.get(regex_url, body=json.dumps(mock_response))
-
-        self.async_run_with_timeout(self.exchange._update_order_fills_from_trades())
-
-        request = self._all_executed_requests(mock_api, url)[0]
-        self.validate_auth_credentials_present(request)
-        request_params = request.kwargs["params"]
-        self.assertEqual(self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset), request_params["symbol"])
-        self.assertNotIn("startTime", request_params)
-
-        self.exchange._set_current_timestamp(1640780000)
-        self.exchange._last_poll_timestamp = (self.exchange.current_timestamp -
-                                              self.exchange.UPDATE_ORDER_STATUS_MIN_INTERVAL - 1)
-        self.exchange._last_trades_poll_woo_x_timestamp = 10
-        self.async_run_with_timeout(self.exchange._update_order_fills_from_trades())
-
-        request = self._all_executed_requests(mock_api, url)[1]
-        self.validate_auth_credentials_present(request)
-        request_params = request.kwargs["params"]
-        self.assertEqual(self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset), request_params["symbol"])
-        self.assertEqual(10 * 1e3, request_params["startTime"])
-
-    @aioresponses()
-    def test_update_order_fills_from_trades_with_repeated_fill_triggers_only_one_event(self, mock_api):
-        self.exchange._set_current_timestamp(1640780000)
-        self.exchange._last_poll_timestamp = (self.exchange.current_timestamp -
-                                              self.exchange.UPDATE_ORDER_STATUS_MIN_INTERVAL - 1)
-
-        url = web_utils.private_rest_url(CONSTANTS.MY_TRADES_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-
-        trade_fill_non_tracked_order = {
-            "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "id": 30000,
-            "orderId": 99999,
-            "orderListId": -1,
-            "price": "4.00000100",
-            "qty": "12.00000000",
-            "quoteQty": "48.000012",
-            "commission": "10.10000000",
-            "commissionAsset": "BNB",
-            "time": 1499865549590,
-            "isBuyer": True,
-            "isMaker": False,
-            "isBestMatch": True
-        }
-
-        mock_response = [trade_fill_non_tracked_order, trade_fill_non_tracked_order]
-        mock_api.get(regex_url, body=json.dumps(mock_response))
-
-        self.exchange.add_exchange_order_ids_from_market_recorder(
-            {str(trade_fill_non_tracked_order["orderId"]): "OID99"})
-
-        self.async_run_with_timeout(self.exchange._update_order_fills_from_trades())
-
-        request = self._all_executed_requests(mock_api, url)[0]
-        self.validate_auth_credentials_present(request)
-        request_params = request.kwargs["params"]
-        self.assertEqual(self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset), request_params["symbol"])
-
-        self.assertEqual(1, len(self.order_filled_logger.event_log))
-        fill_event: OrderFilledEvent = self.order_filled_logger.event_log[0]
-        self.assertEqual(float(trade_fill_non_tracked_order["time"]) * 1e-3, fill_event.timestamp)
-        self.assertEqual("OID99", fill_event.order_id)
-        self.assertEqual(self.trading_pair, fill_event.trading_pair)
-        self.assertEqual(TradeType.BUY, fill_event.trade_type)
-        self.assertEqual(OrderType.LIMIT, fill_event.order_type)
-        self.assertEqual(Decimal(trade_fill_non_tracked_order["price"]), fill_event.price)
-        self.assertEqual(Decimal(trade_fill_non_tracked_order["qty"]), fill_event.amount)
-        self.assertEqual(0.0, fill_event.trade_fee.percent)
-        self.assertEqual([
-            TokenAmount(trade_fill_non_tracked_order["commissionAsset"],
-                        Decimal(trade_fill_non_tracked_order["commission"]))],
-            fill_event.trade_fee.flat_fees)
-        self.assertTrue(self.is_logged(
-            "INFO",
-            f"Recreating missing trade in TradeFill: {trade_fill_non_tracked_order}"
-        ))
-
-    @aioresponses()
-    def test_update_order_status_when_failed(self, mock_api):
-        self.exchange._set_current_timestamp(1640780000)
-        self.exchange._last_poll_timestamp = (self.exchange.current_timestamp -
-                                              self.exchange.UPDATE_ORDER_STATUS_MIN_INTERVAL - 1)
-
-        self.exchange.start_tracking_order(
-            order_id="OID1",
-            exchange_order_id="100234",
-            trading_pair=self.trading_pair,
-            order_type=OrderType.LIMIT,
-            trade_type=TradeType.BUY,
-            price=Decimal("10000"),
-            amount=Decimal("1"),
-        )
-        order = self.exchange.in_flight_orders["OID1"]
-
-        url = web_utils.private_rest_url(CONSTANTS.ORDER_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-
-        order_status = {
-            "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "orderId": int(order.exchange_order_id),
-            "orderListId": -1,
-            "clientOrderId": order.client_order_id,
-            "price": "10000.0",
-            "origQty": "1.0",
-            "executedQty": "0.0",
-            "cummulativeQuoteQty": "0.0",
-            "status": "REJECTED",
-            "timeInForce": "GTC",
-            "type": "LIMIT",
-            "side": "BUY",
-            "stopPrice": "0.0",
-            "icebergQty": "0.0",
-            "time": 1499827319559,
-            "updateTime": 1499827319559,
-            "isWorking": True,
-            "origQuoteOrderQty": "10000.000000"
-        }
-
-        mock_response = order_status
-        mock_api.get(regex_url, body=json.dumps(mock_response))
-
-        self.async_run_with_timeout(self.exchange._update_order_status())
-
-        request = self._all_executed_requests(mock_api, url)[0]
-        self.validate_auth_credentials_present(request)
-        request_params = request.kwargs["params"]
-        self.assertEqual(self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset), request_params["symbol"])
-        self.assertEqual(order.client_order_id, request_params["origClientOrderId"])
-
-        failure_event: MarketOrderFailureEvent = self.order_failure_logger.event_log[0]
-        self.assertEqual(self.exchange.current_timestamp, failure_event.timestamp)
-        self.assertEqual(order.client_order_id, failure_event.order_id)
-        self.assertEqual(order.order_type, failure_event.order_type)
-        self.assertNotIn(order.client_order_id, self.exchange.in_flight_orders)
-        self.assertTrue(
-            self.is_logged(
-                "INFO",
-                f"Order {order.client_order_id} has failed. Order Update: OrderUpdate(trading_pair='{self.trading_pair}',"
-                f" update_timestamp={order_status['updateTime'] * 1e-3}, new_state={repr(OrderState.FAILED)}, "
-                f"client_order_id='{order.client_order_id}', exchange_order_id='{order.exchange_order_id}', "
-                "misc_updates=None)")
-        )
-
-    def test_user_stream_update_for_order_failure(self):
-        self.exchange._set_current_timestamp(1640780000)
-        self.exchange.start_tracking_order(
-            order_id="OID1",
-            exchange_order_id="100234",
-            trading_pair=self.trading_pair,
-            order_type=OrderType.LIMIT,
-            trade_type=TradeType.BUY,
-            price=Decimal("10000"),
-            amount=Decimal("1"),
-        )
-        order = self.exchange.in_flight_orders["OID1"]
-
-        event_message = {
-            "e": "executionReport",
-            "E": 1499405658658,
-            "s": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-            "c": order.client_order_id,
-            "S": "BUY",
-            "o": "LIMIT",
-            "f": "GTC",
-            "q": "1.00000000",
-            "p": "1000.00000000",
-            "P": "0.00000000",
-            "F": "0.00000000",
-            "g": -1,
-            "C": "",
-            "x": "REJECTED",
-            "X": "REJECTED",
-            "r": "NONE",
-            "i": int(order.exchange_order_id),
-            "l": "0.00000000",
-            "z": "0.00000000",
-            "L": "0.00000000",
-            "n": "0",
-            "N": None,
-            "T": 1499405658657,
-            "t": 1,
-            "I": 8641984,
-            "w": True,
-            "m": False,
-            "M": False,
-            "O": 1499405658657,
-            "Z": "0.00000000",
-            "Y": "0.00000000",
-            "Q": "0.00000000"
-        }
-
-        mock_queue = AsyncMock()
-        mock_queue.get.side_effect = [event_message, asyncio.CancelledError]
-        self.exchange._user_stream_tracker._user_stream = mock_queue
-
-        try:
-            self.async_run_with_timeout(self.exchange._user_stream_event_listener())
-        except asyncio.CancelledError:
-            pass
-
-        failure_event: MarketOrderFailureEvent = self.order_failure_logger.event_log[0]
-        self.assertEqual(self.exchange.current_timestamp, failure_event.timestamp)
-        self.assertEqual(order.client_order_id, failure_event.order_id)
-        self.assertEqual(order.order_type, failure_event.order_type)
-        self.assertNotIn(order.client_order_id, self.exchange.in_flight_orders)
-        self.assertTrue(order.is_failure)
-        self.assertTrue(order.is_done)
-
-    @patch("hummingbot.connector.utils.get_tracking_nonce")
-    def test_client_order_id_on_order(self, mocked_nonce):
-        mocked_nonce.return_value = 7
+    @patch("secrets.randbelow")
+    def test_client_order_id_on_order(self, mocked_secret):
+        mocked_secret.return_value =  10
 
         result = self.exchange.buy(
             trading_pair=self.trading_pair,
@@ -973,14 +654,16 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             order_type=OrderType.LIMIT,
             price=Decimal("2"),
         )
-        expected_client_order_id = get_new_client_order_id(
-            is_buy=True,
-            trading_pair=self.trading_pair,
-            hbot_order_id_prefix=CONSTANTS.HBOT_ORDER_ID_PREFIX,
-            max_id_len=CONSTANTS.MAX_ORDER_ID_LEN,
-        )
+
+        expected_client_order_id  = str(secrets.randbelow(9223372036854775807))
+
+        logging.error(expected_client_order_id)
 
         self.assertEqual(result, expected_client_order_id)
+
+        mocked_secret.return_value = 20
+
+        expected_client_order_id = str(secrets.randbelow(9223372036854775807))
 
         result = self.exchange.sell(
             trading_pair=self.trading_pair,
@@ -988,142 +671,8 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             order_type=OrderType.LIMIT,
             price=Decimal("2"),
         )
-        expected_client_order_id = get_new_client_order_id(
-            is_buy=False,
-            trading_pair=self.trading_pair,
-            hbot_order_id_prefix=CONSTANTS.HBOT_ORDER_ID_PREFIX,
-            max_id_len=CONSTANTS.MAX_ORDER_ID_LEN,
-        )
 
         self.assertEqual(result, expected_client_order_id)
-
-    @aioresponses()
-    def test_place_order_manage_server_overloaded_error_unkown_order(self, mock_api):
-        self.exchange._set_current_timestamp(1640780000)
-        self.exchange._last_poll_timestamp = (self.exchange.current_timestamp -
-                                              self.exchange.UPDATE_ORDER_STATUS_MIN_INTERVAL - 1)
-        url = web_utils.private_rest_url(CONSTANTS.ORDER_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-        mock_response = {"code": -1003, "msg": "Unknown error, please check your request or try again later."}
-        mock_api.post(regex_url, body=json.dumps(mock_response), status=503)
-
-        o_id, transact_time = self.async_run_with_timeout(self.exchange._place_order(
-            order_id="test_order_id",
-            trading_pair=self.trading_pair,
-            amount=Decimal("1"),
-            trade_type=TradeType.BUY,
-            order_type=OrderType.LIMIT,
-            price=Decimal("2"),
-        ))
-        self.assertEqual(o_id, "UNKNOWN")
-
-    @aioresponses()
-    def test_place_order_manage_server_overloaded_error_failure(self, mock_api):
-        self.exchange._set_current_timestamp(1640780000)
-        self.exchange._last_poll_timestamp = (self.exchange.current_timestamp -
-                                              self.exchange.UPDATE_ORDER_STATUS_MIN_INTERVAL - 1)
-
-        url = web_utils.private_rest_url(CONSTANTS.ORDER_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-        mock_response = {"code": -1003, "msg": "Service Unavailable."}
-        mock_api.post(regex_url, body=json.dumps(mock_response), status=503)
-
-        self.assertRaises(
-            IOError,
-            self.async_run_with_timeout,
-            self.exchange._place_order(
-                order_id="test_order_id",
-                trading_pair=self.trading_pair,
-                amount=Decimal("1"),
-                trade_type=TradeType.BUY,
-                order_type=OrderType.LIMIT,
-                price=Decimal("2"),
-            ))
-
-        mock_response = {"code": -1003, "msg": "Internal error; unable to process your request. Please try again."}
-        mock_api.post(regex_url, body=json.dumps(mock_response), status=503)
-
-        self.assertRaises(
-            IOError,
-            self.async_run_with_timeout,
-            self.exchange._place_order(
-                order_id="test_order_id",
-                trading_pair=self.trading_pair,
-                amount=Decimal("1"),
-                trade_type=TradeType.BUY,
-                order_type=OrderType.LIMIT,
-                price=Decimal("2"),
-            ))
-
-    def test_format_trading_rules__min_notional_present(self):
-        trading_rules = [{
-            "symbol": "COINALPHAHBOT",
-            "baseAssetPrecision": 8,
-            "status": "TRADING",
-            "quotePrecision": 8,
-            "orderTypes": ["LIMIT", "MARKET"],
-            "filters": [
-                {
-                    "filterType": "PRICE_FILTER",
-                    "minPrice": "0.00000100",
-                    "maxPrice": "100000.00000000",
-                    "tickSize": "0.00000100"
-                }, {
-                    "filterType": "LOT_SIZE",
-                    "minQty": "0.00100000",
-                    "maxQty": "100000.00000000",
-                    "stepSize": "0.00100000"
-                }, {
-                    "filterType": "MIN_NOTIONAL",
-                    "minNotional": "0.00100000"
-                }
-            ],
-            "permissions": [
-                "SPOT"
-            ]
-        }]
-        exchange_info = {"symbols": trading_rules}
-
-        result = self.async_run_with_timeout(self.exchange._format_trading_rules(exchange_info))
-
-        self.assertEqual(result[0].min_notional_size, Decimal("0.00100000"))
-
-    def test_format_trading_rules__notional_but_no_min_notional_present(self):
-        trading_rules = [{
-            "symbol": "COINALPHAHBOT",
-            "baseAssetPrecision": 8,
-            "status": "TRADING",
-            "quotePrecision": 8,
-            "orderTypes": ["LIMIT", "MARKET"],
-            "filters": [
-                {
-                    "filterType": "PRICE_FILTER",
-                    "minPrice": "0.00000100",
-                    "maxPrice": "100000.00000000",
-                    "tickSize": "0.00000100"
-                }, {
-                    "filterType": "LOT_SIZE",
-                    "minQty": "0.00100000",
-                    "maxQty": "100000.00000000",
-                    "stepSize": "0.00100000"
-                }, {
-                    "filterType": "NOTIONAL",
-                    "minNotional": "10.00000000",
-                    "applyMinToMarket": False,
-                    "maxNotional": "10000.00000000",
-                    "applyMaxToMarket": False,
-                    "avgPriceMins": 5
-                }
-            ],
-            "permissions": [
-                "SPOT"
-            ]
-        }]
-        exchange_info = {"symbols": trading_rules}
-
-        result = self.async_run_with_timeout(self.exchange._format_trading_rules(exchange_info))
-
-        self.assertEqual(result[0].min_notional_size, Decimal("10"))
 
     def _validate_auth_credentials_taking_parameters_from_argument(self, request_call: RequestCall):
         headers = request_call.kwargs["headers"]

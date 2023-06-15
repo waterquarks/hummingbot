@@ -1428,7 +1428,8 @@ class AbstractExchangeConnectorTests:
             if self.is_order_fill_http_update_executed_during_websocket_order_event_processing:
                 self.configure_full_fill_trade_response(
                     order=order,
-                    mock_api=mock_api)
+                    mock_api=mock_api
+                )
 
             try:
                 self.async_run_with_timeout(self.exchange._user_stream_event_listener())

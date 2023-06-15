@@ -31,20 +31,20 @@ ORDER_PATH_URL = '/v1/order'
 CANCEL_ORDER_PATH_URL = '/v1/client/order'
 MY_TRADES_PATH_URL = '/v1/client/trades'
 ACCOUNTS_PATH_URL = '/v1/client/holding'
-GET_TRADES_BY_OID_PATH_URL = '/v1/order/{}/trades'
-GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL = '/v1/client/order/{}'
+GET_TRADES_BY_ORDER_ID_PATH = '/v1/order/{}/trades'
+GET_ORDER_BY_CLIENT_ORDER_ID_PATH = '/v1/client/order/{}'
 
 
 RATE_LIMITS = [
     RateLimit(limit_id=EXCHANGE_INFO_PATH_URL, limit=10, time_interval=1),
     RateLimit(limit_id=CANCEL_ORDER_PATH_URL, limit=10, time_interval=1),
-    RateLimit(limit_id=GET_TRADES_BY_OID_PATH_URL, limit=10, time_interval=1),
+    RateLimit(limit_id=GET_TRADES_BY_ORDER_ID_PATH, limit=10, time_interval=1),
     RateLimit(limit_id=MARKET_TRADES_PATH, limit=10, time_interval=1),
     RateLimit(limit_id=ORDERBOOK_SNAPSHOT_PATH_URL, limit=10, time_interval=1),
     RateLimit(limit_id=ORDER_PATH_URL, limit=10, time_interval=1),
     RateLimit(limit_id=MY_TRADES_PATH_URL, limit=10, time_interval=1),
     RateLimit(limit_id=ACCOUNTS_PATH_URL, limit=10, time_interval=1),
-    RateLimit(limit_id=GET_ORDER_BY_CLIENT_ORDER_ID_PATH_URL, limit=10, time_interval=1)
+    RateLimit(limit_id=GET_ORDER_BY_CLIENT_ORDER_ID_PATH, limit=10, time_interval=1)
 ]
 
 # Websocket event types

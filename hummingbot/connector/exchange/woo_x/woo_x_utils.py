@@ -11,8 +11,9 @@ CENTRALIZED = True
 EXAMPLE_PAIR = "BTC-USDT"
 
 DEFAULT_FEES = TradeFeeSchema(
-    maker_percent_fee_decimal=Decimal("0.03"),
-    taker_percent_fee_decimal=Decimal("0.03"),
+    maker_percent_fee_decimal=Decimal("0.0003"),
+    taker_percent_fee_decimal=Decimal("0.0003"),
+    buy_percent_fee_deducted_from_returns=True
 )
 
 
