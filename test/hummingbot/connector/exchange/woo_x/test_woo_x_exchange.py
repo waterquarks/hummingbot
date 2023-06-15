@@ -334,9 +334,9 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         request_data = dict(request_call.kwargs["data"])
         self.assertEqual(self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset), request_data["symbol"])
         self.assertEqual(order.trade_type.name.upper(), request_data["side"])
-        self.assertEqual(WooXExchange.woo_x_order_type(OrderType.LIMIT), request_data["type"])
-        self.assertEqual(Decimal("100"), Decimal(request_data["quantity"]))
-        self.assertEqual(Decimal("10000"), Decimal(request_data["price"]))
+        self.assertEqual(WooXExchange.woo_x_order_type(OrderType.LIMIT), request_data["order_type"])
+        self.assertEqual(Decimal("100"), Decimal(request_data["order_quantity"]))
+        self.assertEqual(Decimal("10000"), Decimal(request_data["order_price"]))
         self.assertEqual(order.client_order_id, request_data["client_order_id"])
 
     def validate_order_cancelation_request(self, order: InFlightOrder, request_call: RequestCall):
@@ -489,6 +489,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
+        logging.info("test 1 2 3")
         url = web_utils.public_rest_url(f"{CONSTANTS.ORDER_PATH_URL}/{order.exchange_order_id}")
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
@@ -496,6 +497,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         response = self._order_status_request_partially_filled_mock_response(order=order)
 
         mock_api.get(regex_url, body=json.dumps(response), callback=callback)
+        logging.info("test 4 5 6")
 
         return url
 
@@ -546,12 +548,12 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             "ts": 1686588154387,
             "data": {
                 "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-                "clientOrderId": order.client_order_id,
-                "orderId": order.exchange_order_id,
+                "clientOrderId": int(order.client_order_id),
+                "orderId": int(order.exchange_order_id),
                 "type": order.order_type.name.upper(),
                 "side": order.trade_type.name.upper(),
-                "quantity": order.amount,
-                "price": order.price,
+                "quantity": float(order.amount),
+                "price": float(order.price),
                 "tradeId": 0,
                 "executedPrice": 0.0,
                 "executedQuantity": 0.0,
@@ -575,12 +577,12 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             "ts": 1686588270140,
             "data": {
                 "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-                "clientOrderId": order.client_order_id,
-                "orderId": order.exchange_order_id,
+                "clientOrderId": int(order.client_order_id),
+                "orderId": int(order.exchange_order_id),
                 "type": order.order_type.name.upper(),
                 "side": order.trade_type.name.upper(),
-                "quantity": order.amount,
-                "price": order.price,
+                "quantity": float(order.amount),
+                "price": float(order.price),
                 "tradeId": 0,
                 "executedPrice": 0.0,
                 "executedQuantity": 0.0,
@@ -604,19 +606,19 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             "ts": 1686588450683,
             "data": {
                 "symbol": self.exchange_symbol_for_tokens(self.base_asset, self.quote_asset),
-                "clientOrderId": order.client_order_id,
+                "clientOrderId": int(order.client_order_id),
                 "orderId": 199270655,
                 "type": order.order_type.name.upper(),
                 "side": order.trade_type.name.upper(),
-                "quantity": order.amount,
-                "price": order.price,
+                "quantity": float(order.amount),
+                "price": float(order.price),
                 "tradeId": 250106703,
-                "executedPrice": order.price,
-                "executedQuantity": order.amount,
-                "fee": self.expected_fill_fee.flat_fees[0].amount,
+                "executedPrice": float(order.price),
+                "executedQuantity": float(order.amount),
+                "fee": float(self.expected_fill_fee.flat_fees[0].amount),
                 "feeAsset": self.expected_fill_fee.flat_fees[0].token,
-                "totalExecutedQuantity": order.amount,
-                "avgPrice": order.price,
+                "totalExecutedQuantity": float(order.amount),
+                "avgPrice": float(order.price),
                 "status": "FILLED",
                 "reason": "",
                 "orderTag": "default",
@@ -673,6 +675,21 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         # order not found during status update (check _is_order_not_found_during_status_update_error)
         pass
 
+    @aioresponses()
+    def test_check_network_failure(self, mock_api):
+        # Disabling this test because Woo X does not have an endpoint to check health.
+        pass
+
+    @aioresponses()
+    def test_check_network_raises_cancel_exception(self, mock_api):
+        # Disabling this test because Woo X does not have an endpoint to check health.
+        pass
+
+    @aioresponses()
+    def test_check_network_success(self, mock_api):
+        # Disabling this test because Woo X does not have an endpoint to check health.
+        pass
+
     def _validate_auth_credentials_taking_parameters_from_argument(self, request_call: RequestCall):
         headers = request_call.kwargs["headers"]
 
@@ -695,17 +712,17 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             "status": "FILLED",
             "side": "BUY",
             "created_time": "1686558570.495",
-            "order_id": order.exchange_order_id,
+            "order_id": int(order.exchange_order_id),
             "order_tag": "default",
-            "price": order.price,
+            "price": float(order.price),
             "type": "LIMIT",
-            "quantity": order.amount,
+            "quantity": float(order.amount),
             "amount": None,
-            "visible": order.amount,
-            "executed": order.amount,
+            "visible": float(order.amount),
+            "executed": float(order.amount),
             "total_fee": 3e-07,
             "fee_asset": "BTC",
-            "client_order_id": order.client_order_id,
+            "client_order_id": int(order.client_order_id),
             "reduce_only": False,
             "realized_pnl": None,
             "average_executed_price": 25929.76,
@@ -757,17 +774,17 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             "status": "NEW",
             "side": order.trade_type.name.upper(),
             "created_time": "1686559699.983",
-            "order_id": order.exchange_order_id,
+            "order_id": int(order.exchange_order_id),
             "order_tag": "default",
-            "price": order.price,
+            "price": float(order.price),
             "type": order.order_type.name.upper(),
-            "quantity": order.amount,
+            "quantity": float(order.amount),
             "amount": None,
-            "visible": order.amount,
+            "visible": float(order.amount),
             "executed": 0,
             "total_fee": 0,
             "fee_asset": "BTC",
-            "client_order_id": order.client_order_id,
+            "client_order_id": int(order.client_order_id),
             "reduce_only": False,
             "realized_pnl": None,
             "average_executed_price": None,
@@ -850,13 +867,13 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
                 {
                     "id": self.expected_fill_trade_id,
                     "symbol": self.exchange_symbol_for_tokens(order.base_asset, order.quote_asset),
-                    "fee": self.expected_fill_fee.flat_fees[0].amount,
+                    "fee": float(self.expected_fill_fee.flat_fees[0].amount),
                     "side": "BUY",
                     "executed_timestamp": "1686585723.908",
                     "order_id": int(order.exchange_order_id),
                     "order_tag": "default",
-                    "executed_price": order.price,
-                    "executed_quantity": order.amount,
+                    "executed_price": float(order.price),
+                    "executed_quantity": float(order.amount),
                     "fee_asset": self.expected_fill_fee.flat_fees[0].token,
                     "is_maker": 0,
                     "realized_pnl": None
