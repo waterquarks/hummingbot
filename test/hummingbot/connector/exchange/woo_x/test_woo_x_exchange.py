@@ -227,19 +227,56 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     @property
     def balance_request_mock_response_for_base_and_quote(self):
         return {
-            "holding": {
-                self.base_asset: 10,
-                self.quote_asset: 2000,
-            },
+            "holding": [{
+                "token": self.base_asset,
+                "holding":10,
+                "frozen":5,
+                "interest":0.0,
+                "outstanding_holding":-0.00080,
+                "pending_exposure":0.0,
+                "opening_cost":-126.36839957,
+                "holding_cost":-125.69703515,
+                "realised_pnl":73572.86125165,
+                "settled_pnl":73573.5326161,
+                "fee_24_h":0.01432411,
+                "settled_pnl_24_h":0.67528081,
+                "updated_time":"1675220398"
+            }, {
+                "token": self.quote_asset,
+                "holding":2000,
+                "frozen":0,
+                "interest":0.0,
+                "outstanding_holding":-0.00080,
+                "pending_exposure":0.0,
+                "opening_cost":-126.36839957,
+                "holding_cost":-125.69703515,
+                "realised_pnl":73572.86125165,
+                "settled_pnl":73573.5326161,
+                "fee_24_h":0.01432411,
+                "settled_pnl_24_h":0.67528081,
+                "updated_time":"1675220398"
+            }],
             "success": True
         }
 
     @property
     def balance_request_mock_response_only_base(self):
         return {
-            "holding": {
-                self.base_asset: 0,
-            },
+            "holding": [{
+                "token": self.base_asset,
+                "holding":10,
+                "frozen":5,
+                "interest":0.0,
+                "outstanding_holding":-0.00080,
+                "pending_exposure":0.0,
+                "opening_cost":-126.36839957,
+                "holding_cost":-125.69703515,
+                "realised_pnl":73572.86125165,
+                "settled_pnl":73573.5326161,
+                "fee_24_h":0.01432411,
+                "settled_pnl_24_h":0.67528081,
+                "updated_time":"1675220398"
+            }],
             "success": True
         }
 
@@ -284,10 +321,10 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def expected_trading_rule(self):
         return TradingRule(
             trading_pair=self.trading_pair,
-            min_order_size=Decimal(self.trading_rules_request_mock_response["rows"][0]["base_min"]),
-            min_price_increment=Decimal(self.trading_rules_request_mock_response["rows"][0]["quote_tick"]),
-            min_base_amount_increment=Decimal(self.trading_rules_request_mock_response["rows"][0]['base_tick']),
-            min_notional_size=Decimal(self.trading_rules_request_mock_response["rows"][0]["min_notional"])
+            min_order_size=Decimal(str(self.trading_rules_request_mock_response["rows"][0]["base_min"])),
+            min_price_increment=Decimal(str(self.trading_rules_request_mock_response["rows"][0]["quote_tick"])),
+            min_base_amount_increment=Decimal(str(self.trading_rules_request_mock_response["rows"][0]['base_tick'])),
+            min_notional_size=Decimal(str(self.trading_rules_request_mock_response["rows"][0]["min_notional"]))
         )
 
     @property
@@ -365,7 +402,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def validate_order_status_request(self, order: InFlightOrder, request_call: RequestCall):
         request_params = request_call.kwargs["params"]
 
-        self.assertEqual(order.exchange_order_id, request_params["oid"])
+        self.assertEqual(order.exchange_order_id, request_params["order_id"])
 
     def validate_trades_request(self, order: InFlightOrder, request_call: RequestCall):
         request_params = request_call.kwargs["params"]
@@ -378,7 +415,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL)
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL)
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
@@ -394,7 +431,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL)
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
         mock_api.delete(regex_url, status=400, callback=callback)
         return url
@@ -402,7 +439,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def configure_order_not_found_error_cancelation_response(
             self, order: InFlightOrder, mock_api: aioresponses, callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL)
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
         response = {"code": -2011, "msg": "Unknown order sent."}
         mock_api.delete(regex_url, status=400, body=json.dumps(response), callback=callback)
@@ -428,7 +465,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             order: InFlightOrder,
             mock_api: aioresponses,
             callback: Optional[Callable] = lambda *args, **kwargs: None) -> str:
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL + f"/{order.exchange_order_id}")
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL + f"/{order.exchange_order_id}")
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
@@ -444,7 +481,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL)
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL)
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
@@ -460,7 +497,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
+        url = web_utils.public_rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
 
         regex_url = re.compile(url + r"\?.*")
 
@@ -476,7 +513,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         """
         :return: the URL configured
         """
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL + f"/{order.exchange_order_id}")
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL + f"/{order.exchange_order_id}")
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
@@ -491,7 +528,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             order: InFlightOrder,
             mock_api: aioresponses,
             callback: Optional[Callable] = lambda *args, **kwargs: None) -> str:
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL)
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
         mock_api.get(regex_url, status=401, callback=callback)
         return url
@@ -502,7 +539,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.rest_url(f"{CONSTANTS.ORDER_PATH_URL}/{order.exchange_order_id}")
+        url = web_utils.public_rest_url(f"{CONSTANTS.ORDER_PATH_URL}/{order.exchange_order_id}")
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
@@ -515,7 +552,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
     def configure_order_not_found_error_order_status_response(
             self, order: InFlightOrder, mock_api: aioresponses, callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> List[str]:
-        url = web_utils.rest_url(CONSTANTS.ORDER_PATH_URL)
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL)
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
         response = {"code": -2013, "msg": "Order does not exist."}
         mock_api.get(regex_url, body=json.dumps(response), status=400, callback=callback)
@@ -527,7 +564,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
+        url = web_utils.public_rest_url(path_url=CONSTANTS.MY_TRADES_PATH_URL)
 
         regex_url = re.compile(url + r"\?.*")
 
@@ -736,11 +773,11 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             "created_time": "1686558863.782",
             "order_id": order.exchange_order_id,
             "order_tag": "default",
-            "price": order.price,
+            "price": float(order.price),
             "type": order.order_type.name.upper(),
-            "quantity": order.amount,
+            "quantity": float(order.amount),
             "amount": None,
-            "visible": order.amount,
+            "visible": float(order.amount),
             "executed": 0,
             "total_fee": 0,
             "fee_asset": "BTC",
