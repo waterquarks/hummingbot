@@ -381,9 +381,16 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL)
-        regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
-        mock_api.delete(regex_url, status=400, callback=callback)
+        url = web_utils.public_rest_url(
+            "https://api.woo.org/v1/client/order"
+        )
+
+        # regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
+
+        response = {"status": "CANCEL_FAILED"}
+
+        mock_api.delete(url, body=json.dumps(response), callback=callback)
+
         return url
 
     def configure_order_not_found_error_cancelation_response(
@@ -415,7 +422,7 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
             order: InFlightOrder,
             mock_api: aioresponses,
             callback: Optional[Callable] = lambda *args, **kwargs: None) -> str:
-        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL + f"/{order.exchange_order_id}")
+        url = web_utils.public_rest_url(CONSTANTS.ORDER_PATH_URL + f"/{order.client_order_id}")
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
 
@@ -489,7 +496,6 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         mock_api: aioresponses,
         callback: Optional[Callable] = lambda *args, **kwargs: None
     ) -> str:
-        logging.info("test 1 2 3")
         url = web_utils.public_rest_url(f"{CONSTANTS.ORDER_PATH_URL}/{order.exchange_order_id}")
 
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
@@ -497,7 +503,6 @@ class WooXExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests):
         response = self._order_status_request_partially_filled_mock_response(order=order)
 
         mock_api.get(regex_url, body=json.dumps(response), callback=callback)
-        logging.info("test 4 5 6")
 
         return url
 
