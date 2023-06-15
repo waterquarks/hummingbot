@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import secrets
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
@@ -393,7 +394,9 @@ class WooXExchange(ExchangePyBase):
                 is_auth_required=True,
             )
 
-            for trade in content['rows']:
+            self.logger().info(f"{content}")
+
+            for trade in content['Transactions']:
                 fee = TradeFeeBase.new_spot_fee(
                     fee_schema=self.trade_fee_schema(),
                     trade_type=order.trade_type,
