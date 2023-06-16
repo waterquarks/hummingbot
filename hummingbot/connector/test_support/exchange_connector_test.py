@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import re
 from abc import ABC, abstractmethod
 from decimal import Decimal
@@ -374,8 +373,8 @@ class AbstractExchangeConnectorTests:
         @classmethod
         def setUpClass(cls) -> None:
             super().setUpClass()
-            cls.base_asset = "BTC"
-            cls.quote_asset = "USDT"
+            cls.base_asset = "COINALPHA"
+            cls.quote_asset = "HBOT"
             cls.trading_pair = f"{cls.base_asset}-{cls.quote_asset}"
 
         def setUp(self) -> None:
@@ -565,8 +564,6 @@ class AbstractExchangeConnectorTests:
         @aioresponses()
         def test_get_last_trade_prices(self, mock_api):
             url = self.latest_prices_url
-
-            logging.info(f"self.latest_prices_url: {self.latest_prices_url}")
 
             response = self.latest_prices_request_mock_response
 
@@ -1125,7 +1122,6 @@ class AbstractExchangeConnectorTests:
                 order=order,
                 mock_api=mock_api)
 
-            logging.info(f"urls: {urls}")
             self.async_run_with_timeout(self.exchange._update_order_status())
 
             for url in (urls if isinstance(urls, list) else [urls]):
@@ -1432,8 +1428,7 @@ class AbstractExchangeConnectorTests:
             if self.is_order_fill_http_update_executed_during_websocket_order_event_processing:
                 self.configure_full_fill_trade_response(
                     order=order,
-                    mock_api=mock_api
-                )
+                    mock_api=mock_api)
 
             try:
                 self.async_run_with_timeout(self.exchange._user_stream_event_listener())

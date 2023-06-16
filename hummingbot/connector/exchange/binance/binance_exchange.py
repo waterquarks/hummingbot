@@ -64,8 +64,7 @@ class BinanceExchange(ExchangePyBase):
         return BinanceAuth(
             api_key=self.api_key,
             secret_key=self.secret_key,
-            time_provider=self._time_synchronizer
-        )
+            time_provider=self._time_synchronizer)
 
     @property
     def name(self) -> str:
