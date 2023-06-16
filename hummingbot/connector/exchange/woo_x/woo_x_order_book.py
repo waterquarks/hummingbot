@@ -52,7 +52,7 @@ class WooXOrderBook(OrderBook):
             "update_id": msg['ts'],
             "bids": msg['data']['bids'],
             "asks": msg['data']['asks']
-        }, timestamp=timestamp)
+        }, timestamp=msg['ts'])
 
     @classmethod
     def trade_message_from_exchange(
