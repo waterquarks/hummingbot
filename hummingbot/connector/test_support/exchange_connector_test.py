@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from abc import ABC, abstractmethod
 from decimal import Decimal
@@ -565,6 +566,8 @@ class AbstractExchangeConnectorTests:
         def test_get_last_trade_prices(self, mock_api):
             url = self.latest_prices_url
 
+            logging.info(f"self.latest_prices_url: {self.latest_prices_url}")
+
             response = self.latest_prices_request_mock_response
 
             mock_api.get(url, body=json.dumps(response))
@@ -1122,6 +1125,7 @@ class AbstractExchangeConnectorTests:
                 order=order,
                 mock_api=mock_api)
 
+            logging.info(f"urls: {urls}")
             self.async_run_with_timeout(self.exchange._update_order_status())
 
             for url in (urls if isinstance(urls, list) else [urls]):

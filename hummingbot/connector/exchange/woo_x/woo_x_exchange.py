@@ -283,7 +283,10 @@ class WooXExchange(ExchangePyBase):
             is_auth_required=True
         )
 
-        return cancel_result.get("status") == "CANCEL_SENT"
+        if cancel_result.get("status") != "CANCEL_SENT":
+            raise IOError()
+
+        return True
 
     async def _format_trading_rules(self, exchange_info: Dict[str, Any]) -> List[TradingRule]:
         result = []
@@ -397,7 +400,7 @@ class WooXExchange(ExchangePyBase):
             symbol = await self.exchange_symbol_associated_to_pair(trading_pair=order.trading_pair)
 
             content = await self._api_get(
-                path_url=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH .format(order.client_order_id),
+                path_url=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH.format(order.client_order_id),
                 limit_id=CONSTANTS.GET_ORDER_BY_CLIENT_ORDER_ID_PATH,
                 is_auth_required=True,
             )
@@ -418,7 +421,7 @@ class WooXExchange(ExchangePyBase):
                 trade_update = TradeUpdate(
                     trade_id=str(trade["id"]),
                     client_order_id=order.client_order_id,
-                    exchange_order_id=str(trade["order_id"]),
+                    exchange_order_id=order.exchange_order_id,
                     trading_pair=symbol,
                     fee=fee,
                     fill_base_amount=Decimal(str(trade["executed_quantity"])),
