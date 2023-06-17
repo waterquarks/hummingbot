@@ -105,6 +105,24 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
 
             raise
 
+    async def _process_websocket_messages(self, websocket_assistant: WSAssistant):
+        async def ping(): await websocket_assistant.send(WSJSONRequest(payload={'event': 'ping'}))
+
+        async for ws_response in websocket_assistant.iter_messages():
+            data: Dict[str, Any] = ws_response.data
+
+            if data.get('event') == 'ping': asyncio.ensure_future(ping())
+
+            if data is not None:  # data will be None when the websocket is disconnected
+                channel: str = self._channel_originating_message(event_message=data)
+                valid_channels = self._get_messages_queue_keys()
+                if channel in valid_channels:
+                    self._message_queue[channel].put_nowait(data)
+                else:
+                    await self._process_message_for_unknown_channel(
+                        event_message=data, websocket_assistant=websocket_assistant
+                    )
+
     async def _connected_websocket_assistant(self) -> WSAssistant:
         ws: WSAssistant = await self._api_factory.get_ws_assistant()
 
@@ -129,7 +147,7 @@ class WooXAPIOrderBookDataSource(OrderBookTrackerDataSource):
         return snapshot_msg
 
     async def _parse_trade_message(self, raw_message: Dict[str, Any], message_queue: asyncio.Queue):
-        trading_pair = self._connector.trading_pair_associated_to_exchange_symbol(
+        trading_pair = await self._connector.trading_pair_associated_to_exchange_symbol(
             symbol=raw_message['topic'].split('@')[0]
         )
 

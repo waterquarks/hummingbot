@@ -1,0 +1,349 @@
+2023-06-14 01:45:19,492 - 31183 - hummingbot.connector.derivative.gate_io_perpetual.gate_io_perpetual_derivative.GateIoPerpetualDerivative - ERROR - There was an error requesting exchange info.
+Traceback (most recent call last):
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 999, in _create_direct_connection
+    hosts = await asyncio.shield(host_resolved)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 865, in _resolve_host
+    addrs = await self._resolver.resolve(host, port, family=self._family)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/resolver.py", line 31, in resolve
+    infos = await self._loop.getaddrinfo(
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/asyncio/base_events.py", line 825, in getaddrinfo
+    return await self.run_in_executor(
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/concurrent/futures/thread.py", line 57, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/socket.py", line 918, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange_py_base.py", line 1088, in _initialize_trading_pair_symbol_map
+    exchange_info = await self._make_trading_pairs_request()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange_py_base.py", line 1101, in _make_trading_pairs_request
+    exchange_info = await self._api_get(path_url=self.trading_pairs_request_path)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange_py_base.py", line 892, in _api_get
+    return await self._api_request(*args, **kwargs)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange_py_base.py", line 934, in _api_request
+    request_result = await rest_assistant.execute_request(
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/web_assistant/rest_assistant.py", line 67, in execute_request
+    response = await self.call(request=request, timeout=timeout)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/web_assistant/rest_assistant.py", line 85, in call
+    resp = await wait_for(self._connection.call(request), timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/asyncio/tasks.py", line 455, in wait_for
+    return await fut
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/web_assistant/connections/rest_connection.py", line 13, in call
+    aiohttp_resp = await self._client_session.request(
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/client.py", line 520, in _request
+    conn = await self._connector.connect(
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 535, in connect
+    proto = await self._create_connection(req, traces, timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 892, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 1011, in _create_direct_connection
+    raise ClientConnectorError(req.connection_key, exc) from exc
+aiohttp.client_exceptions.ClientConnectorError: Cannot connect to host api.gateio.ws:443 ssl:default [nodename nor servname provided, or not known]
+2023-06-14 03:01:13,043 - 32007 - hummingbot.core.utils.trading_pair_fetcher - ERROR - An error occurred when fetching trading pairs for woo_x.Please check the logs
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 53, in fetch_all
+    self._fetch_pairs_from_connector_setting(connector_setting=conn_setting)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 38, in _fetch_pairs_from_connector_setting
+    connector = connector_setting.non_trading_connector_instance_with_default_configuration()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/settings.py", line 309, in non_trading_connector_instance_with_default_configuration
+    connector_class = getattr(importlib.import_module(self.module_path()), self.class_name())
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 783, in exec_module
+  File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Dict' is not defined
+2023-06-14 03:01:13,047 - 32007 - hummingbot.core.utils.trading_pair_fetcher - ERROR - An error occurred when fetching trading pairs for woo_x_staging.Please check the logs
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 53, in fetch_all
+    self._fetch_pairs_from_connector_setting(connector_setting=conn_setting)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 38, in _fetch_pairs_from_connector_setting
+    connector = connector_setting.non_trading_connector_instance_with_default_configuration()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/settings.py", line 309, in non_trading_connector_instance_with_default_configuration
+    connector_class = getattr(importlib.import_module(self.module_path()), self.class_name())
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 783, in exec_module
+  File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Dict' is not defined
+2023-06-14 03:01:14,271 - 32007 - hummingbot.core.utils.async_utils - ERROR - Unhandled error in background task: name 'Dict' is not defined
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/async_utils.py", line 9, in safe_wrapper
+    return await c
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/import_command.py", line 67, in import_config_file
+    all_status_go = await self.status_check_all()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/status_command.py", line 172, in status_check_all
+    invalid_conns = await asyncio.wait_for(self.validate_required_connections(), network_timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/asyncio/tasks.py", line 483, in wait_for
+    return fut.result()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/status_command.py", line 95, in validate_required_connections
+    connections = await UserBalances.instance().update_exchanges(self.client_config_map, exchanges=required_exchanges)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 136, in update_exchanges
+    results = await safe_gather(*tasks)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/async_utils.py", line 22, in safe_gather
+    return await asyncio.gather(*args, **kwargs)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 110, in update_exchange_balance
+    return await self.add_exchange(exchange_name, client_config_map, **api_keys)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 86, in add_exchange
+    market = UserBalances.connect_market(exchange, client_config_map, **api_details)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 23, in connect_market
+    connector_class = get_connector_class(exchange)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/config/config_helpers.py", line 492, in get_connector_class
+    mod = __import__(conn_setting.module_path(),
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Dict' is not defined
+2023-06-14 03:01:14,715 - 32007 - hummingbot.core.utils.async_utils - ERROR - Unhandled error in background task: name 'Dict' is not defined
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/async_utils.py", line 9, in safe_wrapper
+    return await c
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/start_command.py", line 99, in start_check
+    elif not await self.status_check_all(notify_success=False):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/status_command.py", line 172, in status_check_all
+    invalid_conns = await asyncio.wait_for(self.validate_required_connections(), network_timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/asyncio/tasks.py", line 483, in wait_for
+    return fut.result()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/status_command.py", line 95, in validate_required_connections
+    connections = await UserBalances.instance().update_exchanges(self.client_config_map, exchanges=required_exchanges)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 136, in update_exchanges
+    results = await safe_gather(*tasks)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/async_utils.py", line 22, in safe_gather
+    return await asyncio.gather(*args, **kwargs)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 110, in update_exchange_balance
+    return await self.add_exchange(exchange_name, client_config_map, **api_keys)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 86, in add_exchange
+    market = UserBalances.connect_market(exchange, client_config_map, **api_details)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 23, in connect_market
+    connector_class = get_connector_class(exchange)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/config/config_helpers.py", line 492, in get_connector_class
+    mod = __import__(conn_setting.module_path(),
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Dict' is not defined
+2023-06-14 03:01:41,454 - 32019 - hummingbot.core.utils.trading_pair_fetcher - ERROR - An error occurred when fetching trading pairs for woo_x.Please check the logs
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 53, in fetch_all
+    self._fetch_pairs_from_connector_setting(connector_setting=conn_setting)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 38, in _fetch_pairs_from_connector_setting
+    connector = connector_setting.non_trading_connector_instance_with_default_configuration()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/settings.py", line 309, in non_trading_connector_instance_with_default_configuration
+    connector_class = getattr(importlib.import_module(self.module_path()), self.class_name())
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 783, in exec_module
+  File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Dict' is not defined
+2023-06-14 03:01:41,456 - 32019 - hummingbot.core.utils.trading_pair_fetcher - ERROR - An error occurred when fetching trading pairs for woo_x_staging.Please check the logs
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 53, in fetch_all
+    self._fetch_pairs_from_connector_setting(connector_setting=conn_setting)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 38, in _fetch_pairs_from_connector_setting
+    connector = connector_setting.non_trading_connector_instance_with_default_configuration()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/settings.py", line 309, in non_trading_connector_instance_with_default_configuration
+    connector_class = getattr(importlib.import_module(self.module_path()), self.class_name())
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 783, in exec_module
+  File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Dict' is not defined
+2023-06-14 03:01:43,043 - 32019 - hummingbot.core.utils.async_utils - ERROR - Unhandled error in background task: name 'Dict' is not defined
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/async_utils.py", line 9, in safe_wrapper
+    return await c
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/import_command.py", line 67, in import_config_file
+    all_status_go = await self.status_check_all()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/status_command.py", line 172, in status_check_all
+    invalid_conns = await asyncio.wait_for(self.validate_required_connections(), network_timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/asyncio/tasks.py", line 483, in wait_for
+    return fut.result()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/status_command.py", line 95, in validate_required_connections
+    connections = await UserBalances.instance().update_exchanges(self.client_config_map, exchanges=required_exchanges)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 136, in update_exchanges
+    results = await safe_gather(*tasks)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/async_utils.py", line 22, in safe_gather
+    return await asyncio.gather(*args, **kwargs)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 110, in update_exchange_balance
+    return await self.add_exchange(exchange_name, client_config_map, **api_keys)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 86, in add_exchange
+    market = UserBalances.connect_market(exchange, client_config_map, **api_details)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 23, in connect_market
+    connector_class = get_connector_class(exchange)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/config/config_helpers.py", line 492, in get_connector_class
+    mod = __import__(conn_setting.module_path(),
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Dict' is not defined
+2023-06-14 03:03:06,811 - 32038 - hummingbot.core.utils.trading_pair_fetcher - ERROR - An error occurred when fetching trading pairs for woo_x.Please check the logs
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 53, in fetch_all
+    self._fetch_pairs_from_connector_setting(connector_setting=conn_setting)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 38, in _fetch_pairs_from_connector_setting
+    connector = connector_setting.non_trading_connector_instance_with_default_configuration()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/settings.py", line 309, in non_trading_connector_instance_with_default_configuration
+    connector_class = getattr(importlib.import_module(self.module_path()), self.class_name())
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 783, in exec_module
+  File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Any' is not defined
+2023-06-14 03:03:06,813 - 32038 - hummingbot.core.utils.trading_pair_fetcher - ERROR - An error occurred when fetching trading pairs for woo_x_staging.Please check the logs
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 53, in fetch_all
+    self._fetch_pairs_from_connector_setting(connector_setting=conn_setting)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/trading_pair_fetcher.py", line 38, in _fetch_pairs_from_connector_setting
+    connector = connector_setting.non_trading_connector_instance_with_default_configuration()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/settings.py", line 309, in non_trading_connector_instance_with_default_configuration
+    connector_class = getattr(importlib.import_module(self.module_path()), self.class_name())
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 783, in exec_module
+  File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Any' is not defined
+2023-06-14 03:03:08,450 - 32038 - hummingbot.core.utils.async_utils - ERROR - Unhandled error in background task: name 'Any' is not defined
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/async_utils.py", line 9, in safe_wrapper
+    return await c
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/import_command.py", line 67, in import_config_file
+    all_status_go = await self.status_check_all()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/status_command.py", line 172, in status_check_all
+    invalid_conns = await asyncio.wait_for(self.validate_required_connections(), network_timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/asyncio/tasks.py", line 483, in wait_for
+    return fut.result()
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/command/status_command.py", line 95, in validate_required_connections
+    connections = await UserBalances.instance().update_exchanges(self.client_config_map, exchanges=required_exchanges)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 136, in update_exchanges
+    results = await safe_gather(*tasks)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/utils/async_utils.py", line 22, in safe_gather
+    return await asyncio.gather(*args, **kwargs)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 110, in update_exchange_balance
+    return await self.add_exchange(exchange_name, client_config_map, **api_keys)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 86, in add_exchange
+    market = UserBalances.connect_market(exchange, client_config_map, **api_details)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/user/user_balances.py", line 23, in connect_market
+    connector_class = get_connector_class(exchange)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/client/config/config_helpers.py", line 492, in get_connector_class
+    mod = __import__(conn_setting.module_path(),
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_exchange.py", line 12, in <module>
+    from hummingbot.connector.exchange.woo_x.woo_x_api_user_stream_data_source import WooXAPIUserStreamDataSource
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 18, in <module>
+    class WooXAPIUserStreamDataSource(UserStreamTrackerDataSource):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/exchange/woo_x/woo_x_api_user_stream_data_source.py", line 107, in WooXAPIUserStreamDataSource
+    async def _process_event_message(self, event_message: Dict[str, Any], queue: asyncio.Queue):
+NameError: name 'Any' is not defined
+2023-06-14 03:04:53,436 - 32074 - hummingbot.connector.derivative.bitmex_perpetual.bitmex_perpetual_api_order_book_data_source - ERROR - There was an error requesting exchange info (Cannot connect to host www.bitmex.com:443 ssl:default [nodename nor servname provided, or not known])
+2023-06-14 03:06:48,777 - 32116 - hummingbot.connector.derivative.bitmex_perpetual.bitmex_perpetual_api_order_book_data_source - ERROR - There was an error requesting exchange info (Cannot connect to host www.bitmex.com:443 ssl:default [nodename nor servname provided, or not known])
+2023-06-14 03:19:04,090 - 32265 - hummingbot.connector.time_synchronizer - NETWORK - Error getting server time.
+Traceback (most recent call last):
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 999, in _create_direct_connection
+    hosts = await asyncio.shield(host_resolved)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 865, in _resolve_host
+    addrs = await self._resolver.resolve(host, port, family=self._family)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/resolver.py", line 31, in resolve
+    infos = await self._loop.getaddrinfo(
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/asyncio/base_events.py", line 825, in getaddrinfo
+    return await self.run_in_executor(
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/concurrent/futures/thread.py", line 57, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/socket.py", line 918, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/time_synchronizer.py", line 65, in update_server_time_offset_with_time_provider
+    server_time_ms: float = await time_provider
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/connector/derivative/binance_perpetual/binance_perpetual_web_utils.py", line 74, in get_current_server_time
+    response = await rest_assistant.execute_request(
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/web_assistant/rest_assistant.py", line 67, in execute_request
+    response = await self.call(request=request, timeout=timeout)
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/web_assistant/rest_assistant.py", line 85, in call
+    resp = await wait_for(self._connection.call(request), timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/asyncio/tasks.py", line 455, in wait_for
+    return await fut
+  File "/Users/waterquarks/Downloads/hummingbot/hummingbot/core/web_assistant/connections/rest_connection.py", line 13, in call
+    aiohttp_resp = await self._client_session.request(
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/client.py", line 520, in _request
+    conn = await self._connector.connect(
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 535, in connect
+    proto = await self._create_connection(req, traces, timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 892, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+  File "/Users/waterquarks/miniconda3/envs/hummingbot/lib/python3.8/site-packages/aiohttp/connector.py", line 1011, in _create_direct_connection
+    raise ClientConnectorError(req.connection_key, exc) from exc
+aiohttp.client_exceptions.ClientConnectorError: Cannot connect to host fapi.binance.com:443 ssl:default [nodename nor servname provided, or not known]
+2023-06-14 03:19:04,096 - 32265 - hummingbot.connector.time_synchronizer - WARNING - Could not refresh server time. Check network connection.
